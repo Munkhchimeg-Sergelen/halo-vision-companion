@@ -172,19 +172,25 @@ Be precise and careful in counting. If you're unsure about a denomination, menti
                 denom = bill["denomination"]
                 count = bill["count"]
                 if count == 1:
-                    bill_descriptions.append(f"one {currency}{denom} bill")
+                    bill_descriptions.append((f"one {currency}{denom} bill", True))  # (text, is_singular)
                 elif count == 2:
-                    bill_descriptions.append(f"two {currency}{denom} bills")
+                    bill_descriptions.append((f"two {currency}{denom} bills", False))
                 else:
-                    bill_descriptions.append(f"{count} {currency}{denom} bills")
+                    bill_descriptions.append((f"{count} {currency}{denom} bills", False))
             
+            # Check if first item is singular for proper grammar
             if len(bill_descriptions) == 1:
-                output.append(f"There is {bill_descriptions[0]}.")
+                text, is_singular = bill_descriptions[0]
+                verb = "is" if is_singular else "are"
+                output.append(f"There {verb} {text}.")
             elif len(bill_descriptions) == 2:
-                output.append(f"There are {bill_descriptions[0]} and {bill_descriptions[1]}.")
+                text1, _ = bill_descriptions[0]
+                text2, _ = bill_descriptions[1]
+                output.append(f"There are {text1} and {text2}.")
             else:
-                last_bill = bill_descriptions[-1]
-                other_bills = ", ".join(bill_descriptions[:-1])
+                texts = [desc[0] for desc in bill_descriptions]
+                last_bill = texts[-1]
+                other_bills = ", ".join(texts[:-1])
                 output.append(f"There are {other_bills}, and {last_bill}.")
         
         # Describe coins in paragraph format
