@@ -146,51 +146,74 @@ Be precise and careful in counting. If you're unsure about a denomination, menti
     
     def format_cash_text(self, cash_data):
         """
-        Format cash detection data as readable text
+        Format cash detection data as readable paragraph text for TTS
         
         Args:
             cash_data (dict): Parsed cash detection data
             
         Returns:
-            str: Formatted cash text
+            str: Formatted cash text in paragraph style
         """
         if not cash_data.get("has_cash", False):
             return cash_data.get("message", "No cash detected in this image.")
         
         output = []
         currency = cash_data.get("currency_symbol", "$")
+        total_amount = cash_data.get("total_amount", 0)
         
-        output.append("💵 Cash Detected!\n")
+        # Opening statement
+        output.append("I can see cash in this image.")
         
-        # Description
-        if cash_data.get("description"):
-            output.append(f"{cash_data['description']}\n")
-        
-        # Bills
-        if cash_data.get("bills"):
-            output.append("Bills:")
-            for bill in cash_data["bills"]:
+        # Describe bills in paragraph format
+        bills = cash_data.get("bills", [])
+        if bills:
+            bill_descriptions = []
+            for bill in bills:
                 denom = bill["denomination"]
                 count = bill["count"]
-                total = bill["total"]
-                output.append(f"  • {count} × {currency}{denom} bill{'s' if count > 1 else ''} = {currency}{total:.2f}")
+                if count == 1:
+                    bill_descriptions.append(f"one {currency}{denom} bill")
+                elif count == 2:
+                    bill_descriptions.append(f"two {currency}{denom} bills")
+                else:
+                    bill_descriptions.append(f"{count} {currency}{denom} bills")
+            
+            if len(bill_descriptions) == 1:
+                output.append(f"There is {bill_descriptions[0]}.")
+            elif len(bill_descriptions) == 2:
+                output.append(f"There are {bill_descriptions[0]} and {bill_descriptions[1]}.")
+            else:
+                last_bill = bill_descriptions[-1]
+                other_bills = ", ".join(bill_descriptions[:-1])
+                output.append(f"There are {other_bills}, and {last_bill}.")
         
-        # Coins
-        if cash_data.get("coins"):
-            output.append("\nCoins:")
-            for coin in cash_data["coins"]:
+        # Describe coins in paragraph format
+        coins = cash_data.get("coins", [])
+        if coins:
+            coin_descriptions = []
+            for coin in coins:
                 coin_type = coin["type"]
                 count = coin["count"]
-                total = coin["total"]
-                output.append(f"  • {count} × {coin_type}{'s' if count > 1 else ''} = {currency}{total:.2f}")
+                if count == 1:
+                    coin_descriptions.append(f"one {coin_type}")
+                elif count == 2:
+                    coin_descriptions.append(f"two {coin_type}s")
+                else:
+                    coin_descriptions.append(f"{count} {coin_type}s")
+            
+            if len(coin_descriptions) == 1:
+                output.append(f"There is also {coin_descriptions[0]}.")
+            elif len(coin_descriptions) == 2:
+                output.append(f"There are also {coin_descriptions[0]} and {coin_descriptions[1]}.")
+            else:
+                last_coin = coin_descriptions[-1]
+                other_coins = ", ".join(coin_descriptions[:-1])
+                output.append(f"There are also {other_coins}, and {last_coin}.")
         
-        # Total
-        total_amount = cash_data.get("total_amount", 0)
-        output.append(f"\n{'='*40}")
-        output.append(f"TOTAL CASH: {currency}{total_amount:.2f}")
-        output.append(f"{'='*40}")
+        # Total in natural language
+        output.append(f"The total amount of cash is {currency}{total_amount:.2f}.")
         
-        return "\n".join(output)
+        return " ".join(output)
     
     def get_total_only(self, cash_data):
         """

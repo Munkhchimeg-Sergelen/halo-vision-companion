@@ -149,15 +149,15 @@ Be thorough and include ALL visible items and prices. If you can't determine a p
         menu_name = menu_data.get('menu_name', 'Menu')
         currency = menu_data.get('currency', '$')
         
+        # Opening
+        output.append(f"This is the menu.")
+        
         for category in menu_data.get('categories', []):
             category_name = category['name']
             items_list = category.get('items', [])
             
             if not items_list:
                 continue
-            
-            # Category introduction
-            output.append(f"\nIn our {category_name} section:")
             
             # Build paragraph for items
             item_descriptions = []
@@ -171,25 +171,25 @@ Be thorough and include ALL visible items and prices. If you can't determine a p
                 item_text = f"{name} for {currency}{price:.2f}"
                 
                 if description:
-                    item_text += f" - {description}"
+                    item_text += f", {description}"
                 
                 if notes:
                     notes_str = ", ".join(notes)
-                    item_text += f" ({notes_str})"
+                    item_text += f", which is {notes_str}"
                 
                 item_descriptions.append(item_text)
             
-            # Join items into a flowing paragraph
+            # Join items into a flowing paragraph with category introduction
             if len(item_descriptions) == 1:
-                output.append(f"We have {item_descriptions[0]}.")
+                output.append(f"For {category_name}, we have {item_descriptions[0]}.")
             elif len(item_descriptions) == 2:
-                output.append(f"We have {item_descriptions[0]}, and {item_descriptions[1]}.")
+                output.append(f"For {category_name}, we have {item_descriptions[0]}, and {item_descriptions[1]}.")
             else:
                 last_item = item_descriptions[-1]
                 other_items = ", ".join(item_descriptions[:-1])
-                output.append(f"We have {other_items}, and {last_item}.")
+                output.append(f"For {category_name}, we have {other_items}, and {last_item}.")
         
-        return "\n".join(output)
+        return " ".join(output)
     
     def get_menu_summary(self, menu_data):
         """
