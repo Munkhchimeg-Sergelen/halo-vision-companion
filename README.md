@@ -1,51 +1,71 @@
-# 🌟 Halo - Conversational Vision Companion
+# Menu Reader & Cash Detector
 
-> Empowering the visually impaired through voice and vision AI
+Python backend for reading food menus and detecting/counting cash using OpenAI Vision API.
 
-## 🎯 Purpose
-A voice-to-voice multimodal agent that:
-- 🎤 Listens via ElevenLabs STT
-- 👁️ Sees via OpenAI Vision
-- 🗣️ Responds via ElevenLabs TTS
-- 🧭 Helps with scene description, text reading, and navigation
+## Features
 
-## 🏗️ Architecture
-- **Voice Pipeline**: Mic capture → STT → TTS
-- **Vision Module**: Camera → OpenAI Vision → Scene understanding
-- **Agent Brain**: Orchestrator with navigation logic
-- **UI**: Simple, accessible interface
+- **📋 Menu Reading**: Reads food menu images and extracts items, prices, and descriptions in paragraph format
+- **💵 Cash Detection**: Detects bills and coins in images and calculates total amount
+- **🤖 Smart Detection**: Automatically determines if image contains menu or cash
 
-## 👥 Team
-- **Role 1**: Voice Pipeline Engineer
-- **Role 2**: Vision & Scene Understanding Engineer
-- **Role 3**: Navigation & Agent Logic Engineer
-- **Role 4**: Integration, Frontend & Demo Engineer
+## Setup
 
-## 🚀 Quick Start
+1. Install dependencies:
 ```bash
-npm install
-cp .env.example .env
-# Add your API keys to .env
-npm run dev
+pip3 install openai pillow python-dotenv
 ```
 
-## 🛠️ Tech Stack
-- ElevenLabs (STT/TTS)
-- OpenAI Vision API
-- Vanilla JS/Vite
-- HTML5 MediaRecorder API
+2. Set your OpenAI API key:
+```bash
+export OPENAI_API_KEY='your-openai-api-key-here'
+```
 
-## 📝 API Keys Needed
-1. ElevenLabs API Key: https://elevenlabs.io
-2. OpenAI API Key: https://platform.openai.com
+Or replace `'your-api-key-here'` in `main.py` with your actual API key.
 
-## 🎬 Demo Scenarios
-1. **Environment Awareness**: "What's around me?"
-2. **Text Reading**: "Read this label"
-3. **Navigation**: "Guide me to the exit"
+## Usage
 
-## 📦 Submission
-- Repository: [Add link]
-- Demo Video: [Add link]
-- Hackathon: [Event name]
-- Date: Dec 11, 2025
+Simply run with any image (menu or cash):
+
+```bash
+python3 main.py <image_path>
+```
+
+**Examples:**
+
+```bash
+# Read a menu
+python3 main.py menu_image.jpg
+
+# Detect cash
+python3 main.py money.jpg
+```
+
+## How It Works
+
+1. **Automatic Detection**: Uses OpenAI Vision API to detect if image contains menu or cash
+2. **Smart Routing**: Automatically routes to menu reader or cash detector
+3. **Text Output**: Returns clean, simple text output
+
+## Output Examples
+
+**Menu:**
+```
+In our Main Course section:
+We have Fried Rice for $10.00, Sirloin Steak for $11.00...
+```
+
+**Cash:**
+```
+💵 Cash Detected!
+Bills:
+  • 5 × R$50 bills = R$250.00
+TOTAL CASH: R$250.00
+```
+
+## Files
+
+- `main.py` - Main entry point (smart detector)
+- `menu_reader.py` - Menu reading module
+- `cash_detector.py` - Cash detection module
+- `cash_calculator.py` - Change calculation utilities
+- `requirements.txt` - Python dependencies
