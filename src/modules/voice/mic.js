@@ -14,18 +14,22 @@ export async function initializeMicrophone() {
     console.log('🎤 Initializing microphone...');
     
     try {
-        // TODO: Request microphone access
-        // stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        // TODO: Create MediaRecorder instance
-        // mediaRecorder = new MediaRecorder(stream);
-        
-        // TODO: Set up event listeners for dataavailable
+        // Request microphone access
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                sampleRate: 44100
+            } 
+        });
         
         console.log('✅ Microphone initialized');
         return true;
     } catch (error) {
         console.error('❌ Microphone initialization failed:', error);
+        if (error.name === 'NotAllowedError') {
+            alert('Please allow microphone access to use Halo!');
+        }
         return false;
     }
 }
@@ -38,18 +42,27 @@ export async function initializeMicrophone() {
 export async function startRecording() {
     console.log('🔴 Recording started');
     
-    // TODO: Clear previous audio chunks
+    // Clear previous audio chunks
     audioChunks = [];
     
-    // TODO: Set up data collection
-    // mediaRecorder.ondataavailable = (event) => {
-    //     if (event.data.size > 0) {
-    //         audioChunks.push(event.data);
-    //     }
-    // };
+    // Create MediaRecorder if not exists
+    if (!mediaRecorder && stream) {
+        mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'audio/webm'
+        });
+        
+        // Set up data collection
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+            }
+        };
+    }
     
-    // TODO: Start recording
-    // mediaRecorder.start();
+    // Start recording
+    if (mediaRecorder && mediaRecorder.state !== 'recording') {
+        mediaRecorder.start();
+    }
 }
 
 /**
@@ -61,17 +74,21 @@ export async function stopRecording() {
     console.log('⏹️ Recording stopped');
     
     return new Promise((resolve) => {
-        // TODO: Set up onstop handler
-        // mediaRecorder.onstop = () => {
-        //     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        //     resolve(audioBlob);
-        // };
+        if (!mediaRecorder || mediaRecorder.state !== 'recording') {
+            console.warn('⚠️ MediaRecorder not recording');
+            resolve(null);
+            return;
+        }
         
-        // TODO: Stop the recorder
-        // mediaRecorder.stop();
+        // Set up onstop handler
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            console.log('✅ Audio blob created:', audioBlob.size, 'bytes');
+            resolve(audioBlob);
+        };
         
-        // Placeholder - remove when implemented
-        resolve(null);
+        // Stop the recorder
+        mediaRecorder.stop();
     });
 }
 
