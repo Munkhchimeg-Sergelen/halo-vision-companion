@@ -107,10 +107,10 @@ function setupCaptureButton() {
         return;
     }
     
-    // TODO: Add click event - capture and analyze
-    // captureBtn.addEventListener('click', async () => {
-    //     await handleSceneCapture();
-    // });
+    // Add click event - capture and analyze
+    captureBtn.addEventListener('click', async () => {
+        await handleSceneCapture();
+    });
     
     console.log('✅ Capture button configured');
 }
@@ -159,33 +159,43 @@ async function handleVoiceInteraction(transcript) {
 
 /**
  * Handle scene capture flow
+ * Captures camera frame and analyzes with smart detection (menu/cash/scene)
  */
 async function handleSceneCapture() {
     try {
-        // TODO: Show "capturing" status
         updateStatus('📸 Capturing scene...');
         
-        // TODO: Capture frame
-        // const base64Image = await captureFrame();
+        // Capture frame from camera
+        const base64Image = await captureFrame();
         
-        // TODO: Analyze with vision API
-        updateStatus('🔍 Analyzing...');
-        // const visionData = await analyzeScene(base64Image);
+        if (!base64Image) {
+            updateStatus('⚠️ Could not capture image - Ready');
+            await speak('I could not capture an image. Please make sure the camera is working.');
+            return;
+        }
         
-        // TODO: Store vision data for context
-        // lastVisionData = visionData;
+        // Analyze with vision API (smart detection: menu, cash, or scene)
+        updateStatus('🔍 Analyzing what I see...');
+        const visionData = await analyzeScene(base64Image);
         
-        // TODO: Optionally speak description
-        // if (visionData && visionData.scene_description) {
-        //     addToTranscript('agent', `Scene captured: ${visionData.scene_description}`);
-        //     await speak(visionData.scene_description);
-        // }
+        // Store vision data for context in future conversations
+        lastVisionData = visionData;
         
-        updateStatus('✅ Scene captured - Ready');
+        // Get the spoken description
+        const description = visionData.spoken_description || 'I could not analyze the image.';
+        
+        // Add to transcript and speak
+        addToTranscript('agent', `[${visionData.type}] ${description}`);
+        
+        updateStatus('🗣️ Describing what I see...');
+        await speak(description);
+        
+        updateStatus('✅ Ready - Hold to speak or capture again');
         
     } catch (error) {
         console.error('❌ Scene capture failed:', error);
         showError('Failed to capture scene. Please try again.');
+        await speak('Sorry, I had trouble analyzing the scene. Please try again.');
         updateStatus('❌ Error - Ready');
     }
 }
