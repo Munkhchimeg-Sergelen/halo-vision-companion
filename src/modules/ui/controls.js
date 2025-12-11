@@ -38,32 +38,38 @@ function setupVoiceButton() {
         return;
     }
     
-    // TODO: Add mousedown event - start recording
-    // voiceBtn.addEventListener('mousedown', async () => {
-    //     updateStatus('🎤 Listening...');
-    //     voiceBtn.style.background = '#ff4444';
-    //     await startRecording();
-    // });
+    // Add mousedown event - start recording
+    voiceBtn.addEventListener('mousedown', async () => {
+        updateStatus('🎤 Listening...');
+        voiceBtn.style.background = '#ff4444';
+        await startRecording();
+    });
     
-    // TODO: Add mouseup event - stop recording and process
-    // voiceBtn.addEventListener('mouseup', async () => {
-    //     updateStatus('⏳ Processing...');
-    //     voiceBtn.style.background = '#667eea';
-    //     
-    //     const audioBlob = await stopRecording();
-    //     await handleVoiceInteraction(audioBlob);
-    // });
+    // Add mouseup event - stop recording and process
+    voiceBtn.addEventListener('mouseup', async () => {
+        updateStatus('⏳ Processing...');
+        voiceBtn.style.background = '#667eea';
+        
+        const audioBlob = await stopRecording();
+        await handleVoiceInteraction(audioBlob);
+    });
     
-    // TODO: Add touch events for mobile
-    // voiceBtn.addEventListener('touchstart', async (e) => {
-    //     e.preventDefault();
-    //     // Same as mousedown
-    // });
+    // Add touch events for mobile
+    voiceBtn.addEventListener('touchstart', async (e) => {
+        e.preventDefault();
+        updateStatus('🎤 Listening...');
+        voiceBtn.style.background = '#ff4444';
+        await startRecording();
+    });
     
-    // voiceBtn.addEventListener('touchend', async (e) => {
-    //     e.preventDefault();
-    //     // Same as mouseup
-    // });
+    voiceBtn.addEventListener('touchend', async (e) => {
+        e.preventDefault();
+        updateStatus('⏳ Processing...');
+        voiceBtn.style.background = '#667eea';
+        
+        const audioBlob = await stopRecording();
+        await handleVoiceInteraction(audioBlob);
+    });
     
     console.log('✅ Voice button configured');
 }
@@ -93,30 +99,35 @@ function setupCaptureButton() {
  */
 async function handleVoiceInteraction(audioBlob) {
     try {
-        // TODO: Show "processing" status
+        // Show "processing" status
         updateStatus('🎯 Understanding...');
         
-        // TODO: Transcribe audio
-        // const transcript = await transcribeAudio(audioBlob);
+        // Transcribe audio
+        const transcript = await transcribeAudio(audioBlob);
         
-        // TODO: Add to transcript log
-        // addToTranscript('user', transcript);
+        if (!transcript || transcript.trim().length === 0) {
+            updateStatus('⚠️ No speech detected - Ready');
+            return;
+        }
         
-        // TODO: Get current vision data if available
-        // const visionContext = lastVisionData;
+        // Add to transcript log
+        addToTranscript('user', transcript);
         
-        // TODO: Send to orchestrator
+        // Get current vision data if available
+        const visionContext = lastVisionData;
+        
+        // Send to orchestrator
         updateStatus('🧠 Thinking...');
-        // const response = await orchestrate(transcript, visionContext);
+        const response = await orchestrate(transcript, visionContext);
         
-        // TODO: Add response to transcript
-        // addToTranscript('agent', response);
+        // Add response to transcript
+        addToTranscript('agent', response);
         
-        // TODO: Speak response
+        // Speak response
         updateStatus('🗣️ Speaking...');
-        // await speak(response);
+        await speak(response);
         
-        updateStatus('✅ Ready');
+        updateStatus('✅ Ready - Hold button to speak');
         
     } catch (error) {
         console.error('❌ Voice interaction failed:', error);
