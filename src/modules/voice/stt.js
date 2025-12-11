@@ -39,49 +39,28 @@ export async function initializeSTT() {
  * @returns {Promise<string>} Transcribed text
  */
 export async function transcribeAudio(audioBlob) {
-    console.log('🎯 Transcribing with Browser Speech Recognition...');
+    console.log('🎯 Transcribing (MOCK for demo)...');
     
-    if (!recognition) {
-        console.error('❌ Speech Recognition not available');
-        return '';
-    }
+    // MOCK TRANSCRIPTION for hackathon demo
+    // In production, this would use actual STT
+    const mockTranscripts = [
+        "What's around me?",
+        "Read the menu to me",
+        "Where is the door?",
+        "Help me navigate",
+        "What can you see?"
+    ];
     
-    return new Promise((resolve) => {
-        let finalTranscript = '';
-        
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            finalTranscript = transcript;
-            console.log('✅ Transcription:', transcript);
-        };
-        
-        recognition.onend = () => {
-            isListening = false;
-            resolve(finalTranscript);
-        };
-        
-        recognition.onerror = (event) => {
-            console.error('❌ Speech recognition error:', event.error);
-            isListening = false;
-            resolve('');
-        };
-        
-        // Timeout after 10 seconds
-        setTimeout(() => {
-            if (isListening) {
-                recognition.stop();
-            }
-        }, 10000);
-        
-        try {
-            recognition.start();
-            isListening = true;
-            console.log('🎤 Browser STT listening...');
-        } catch (error) {
-            console.error('❌ Failed to start recognition:', error);
-            resolve('');
-        }
-    });
+    // Return a random mock transcript
+    const transcript = mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
+    
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    console.log('✅ Mock Transcription:', transcript);
+    console.log('⚠️ NOTE: Using mock STT for demo. In production, would use ElevenLabs STT.');
+    
+    return transcript;
 }
 
 /**
