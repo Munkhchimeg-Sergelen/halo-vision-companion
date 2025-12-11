@@ -4,7 +4,7 @@
 import { startRecording, stopRecording } from '../voice/mic.js';
 import { transcribeAudio } from '../voice/stt.js';
 import { speak } from '../voice/tts.js';
-import { captureFrame, ensureCameraPlaying } from '../vision/camera.js';
+import { captureFrame, ensureCameraPlaying, initializeCamera } from '../vision/camera.js';
 import { analyzeScene } from '../vision/vision_agent.js';
 import { orchestrate } from '../agent/orchestrator.js';
 
@@ -102,41 +102,66 @@ async function showCameraPreview() {
         console.log('🎥 showCameraPreview called');
         updateStatus('📷 Opening camera...');
         
-        // Ensure camera is playing
-        console.log('🎥 Ensuring camera is playing...');
-        const cameraReady = await ensureCameraPlaying();
-        console.log('🎥 Camera ready:', cameraReady);
+        // Get video element
+        const videoElement = document.getElementById('camera');
+        console.log('🎥 Video element:', videoElement);
+        console.log('🎥 Video element exists:', !!videoElement);
+        console.log('🎥 Video element parent:', videoElement?.parentElement);
+        console.log('🎥 All video elements:', document.querySelectorAll('video'));
         
-        if (!cameraReady) {
-            showError('Camera not available. Please check permissions.');
+        if (!videoElement) {
+            console.error('❌ Video element not found in DOM!');
+            showError('Video element not found');
+            return;
+        }
+        
+        console.log('🎥 Video element current style:', {
+            display: videoElement.style.display,
+            width: videoElement.style.width,
+            height: videoElement.style.height
+        });
+        
+        // Request camera access directly
+        try {
+            console.log('🎥 Requesting camera access...');
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: 'user' // Use front camera (selfie)
+                } 
+            });
+            
+            console.log('🎥 Got camera stream:', stream);
+            console.log('🎥 Stream active:', stream.active);
+            console.log('🎥 Video tracks:', stream.getVideoTracks());
+            
+            // Attach stream to video
+            videoElement.srcObject = stream;
+            videoElement.style.display = 'block';
+            videoElement.style.width = '100%';
+            videoElement.style.height = '100%';
+            videoElement.style.objectFit = 'cover';
+            
+            // Play video
+            await videoElement.play();
+            console.log('🎥 Video playing!');
+            
+        } catch (err) {
+            console.error('❌ Camera access denied:', err);
+            showError('Camera permission denied. Please allow camera access.');
             return;
         }
         
         isCameraActive = true;
         
-        // Show preview
-        console.log('🎥 Showing preview elements...');
-        console.log('🎥 cameraPreview element:', cameraPreview);
-        console.log('🎥 appContainer element:', appContainer);
-        
+        // Show preview container
         if (cameraPreview) {
             cameraPreview.classList.add('active');
-            console.log('🎥 Added active class to preview');
-            
-            // Make sure video element is visible
-            const videoElement = document.getElementById('camera');
-            if (videoElement) {
-                videoElement.style.display = 'block';
-                videoElement.style.width = '100%';
-                videoElement.style.height = '100%';
-                videoElement.style.objectFit = 'cover';
-                console.log('🎥 Video element styled and visible');
-                console.log('🎥 Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
-            }
+            console.log('🎥 Preview container shown');
         }
         if (appContainer) {
             appContainer.classList.add('camera-active');
-            console.log('🎥 Added camera-active class to container');
         }
         
         // Update button
@@ -145,11 +170,10 @@ async function showCameraPreview() {
         if (labelElement) labelElement.textContent = 'Capture Photo';
         
         updateStatus('📷 Camera ready - Click to capture');
-        console.log('🎥 Camera preview should now be visible');
         
     } catch (error) {
         console.error('❌ Failed to show camera:', error);
-        showError('Failed to open camera');
+        showError('Failed to open camera: ' + error.message);
         isCameraActive = false;
     }
 }

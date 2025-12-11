@@ -14,8 +14,11 @@
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
     "@capacitor/ios": "^8.0.0",
+    "@vitejs/plugin-react": "^5.1.2",
     "axios": "^1.6.2",
-    "openai": "^4.20.1"
+    "openai": "^4.20.1",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
   },
   "devDependencies": {
     "vite": "^5.0.0"
