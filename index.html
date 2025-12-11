@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halo - Vision Companion</title>
+    <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌟 Halo</h1>
+            <p>Your Vision Companion</p>
+        </header>
+
+        <main>
+            <div class="controls">
+                <!-- TODO: Add hold-to-speak button -->
+                <button id="voiceBtn" class="btn-primary">
+                    🎤 Hold to Speak
+                </button>
+
+                <!-- TODO: Add capture image button -->
+                <button id="captureBtn" class="btn-secondary">
+                    📷 Capture Scene
+                </button>
+            </div>
+
+            <div class="status">
+                <p id="statusText">Ready</p>
+            </div>
+
+            <div class="transcript">
+                <h3>Conversation</h3>
+                <div id="transcriptLog"></div>
+            </div>
+        </main>
+
+        <!-- Hidden camera element -->
+        <video id="camera" style="display:none;" autoplay></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
