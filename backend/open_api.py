@@ -1,4 +1,5 @@
 import json
+import shutil
 from pathlib import Path
 from openai import OpenAI
 
@@ -109,6 +110,18 @@ def process_all_json_inputs(language: str = "English") -> None:
             f.write(description)
 
         print(f"Saved OpenAI description to: {txt_output_path}")
+
+    # Copy the latest vision output to public/ for voice pipeline
+    txt_files = sorted(
+        [p for p in JSON_OUTPUT_DIR.iterdir() if p.is_file() and p.suffix.lower() == ".txt"]
+    )
+    if txt_files:
+        latest = txt_files[-1]
+        public_dir = BASE_DIR / "public"
+        public_dir.mkdir(parents=True, exist_ok=True)
+        fixed_output = public_dir / "vision_output.txt"
+        shutil.copy(latest, fixed_output)
+        print(f"📢 Copied latest vision output to: {fixed_output}")
 
 
 if __name__ == "__main__":

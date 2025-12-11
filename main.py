@@ -6,6 +6,8 @@ Automatically detects and processes menu or cash images
 import sys
 import os
 import base64
+import shutil
+from pathlib import Path
 from datetime import datetime
 from openai import OpenAI
 from menu_reader import MenuReader
@@ -145,6 +147,14 @@ def main():
         
         # Save result to file
         output_path = save_to_file(result_text, image_path, output_type)
+        
+        # Copy to public/ for voice pipeline to read
+        project_root = Path(__file__).resolve().parent
+        public_dir = project_root / "public"
+        public_dir.mkdir(parents=True, exist_ok=True)
+        fixed_output = public_dir / "menu_cash_output.txt"
+        shutil.copy(output_path, fixed_output)
+        print(f"📢 Copied to voice pipeline: {fixed_output}")
         
         # Print success message
         print(f"✅ Analysis complete!")

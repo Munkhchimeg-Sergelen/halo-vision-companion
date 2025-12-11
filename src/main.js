@@ -9,6 +9,28 @@ import { initializeVision } from './modules/vision/vision_agent.js';
 import { initializeOrchestrator } from './modules/agent/orchestrator.js';
 import { initializeUI, updateStatus } from './modules/ui/controls.js';
 
+/**
+ * Speak text using browser's built-in Web Speech API (no API key needed)
+ */
+function speakText(text) {
+    return new Promise((resolve) => {
+        if (!text || !text.trim()) {
+            resolve();
+            return;
+        }
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        
+        utterance.onend = () => resolve();
+        utterance.onerror = () => resolve();
+        
+        window.speechSynthesis.speak(utterance);
+    });
+}
+
 // Application state
 const appState = {
     isRecording: false,
@@ -74,6 +96,9 @@ async function initializeApp() {
         if (appState.initialized) {
             console.log('✅ All systems ready!');
             updateStatus('✅ Ready - Hold button to speak');
+            
+            // Read initial outputs from backend pipelines
+            await readInitialOutputs();
         } else {
             console.warn('⚠️ Some modules failed to initialize');
             updateStatus('⚠️ Partial initialization - Check console');
@@ -82,6 +107,52 @@ async function initializeApp() {
     } catch (error) {
         console.error('❌ Initialization failed:', error);
         updateStatus('❌ Initialization failed');
+    }
+}
+
+/**
+ * Read initial outputs from backend pipelines and speak them
+ */
+async function readInitialOutputs() {
+    console.log('📖 Reading initial outputs from backend...');
+    
+    try {
+        // Try multiple possible paths for outputs
+        const outputPaths = [
+            '/output/output1.txt',
+            '/frames/json_output_openai/IMG_5436.txt',
+            '/menu_cash_output.txt',
+            '/vision_output.txt'
+        ];
+        
+        let textToSpeak = '';
+        
+        for (const path of outputPaths) {
+            try {
+                const res = await fetch(path);
+                if (res.ok) {
+                    const text = await res.text();
+                    if (text.trim()) {
+                        console.log(`📄 Found output at: ${path}`);
+                        textToSpeak += text.trim() + '\n\n';
+                    }
+                }
+            } catch (e) {
+                // Ignore fetch errors for individual files
+            }
+        }
+        
+        if (textToSpeak.trim()) {
+            console.log('🗣️ Speaking outputs...');
+            updateStatus('🗣️ Reading analysis...');
+            await speakText(textToSpeak);
+            updateStatus('✅ Ready - Hold button to speak');
+        } else {
+            console.log('ℹ️ No initial outputs found');
+        }
+        
+    } catch (err) {
+        console.error('Error reading initial outputs:', err);
     }
 }
 
