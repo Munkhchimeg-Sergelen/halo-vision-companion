@@ -39,13 +39,14 @@ transform = midas_transforms.dpt_transform  # for DPT_Large
 
 all_objects = []  # to save a global detections.json
 
-# Iterate over all PNG images in INPUT_DIR
-png_files = sorted([p for p in INPUT_DIR.iterdir() if p.is_file() and p.suffix.lower() == ".png"])
+# Iterate over all image files in INPUT_DIR (PNG, JPG, JPEG)
+image_extensions = {".png", ".jpg", ".jpeg"}
+image_files = sorted([p for p in INPUT_DIR.iterdir() if p.is_file() and p.suffix.lower() in image_extensions])
 
-if not png_files:
-    print(f"No PNG files found in {INPUT_DIR}")
+if not image_files:
+    print(f"No image files found in {INPUT_DIR}")
 
-for image_path in png_files:
+for image_path in image_files:
     print(f"Processing {image_path} ...")
 
     # ---------------- RUN YOLO INFERENCE ----------------

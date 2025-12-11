@@ -226,6 +226,146 @@
         .speaking .status-dot {
             background: #fbbf24;
         }
+        
+        .mic-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #fff;
+            border: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .mic-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 50px rgba(16, 185, 129, 0.5);
+        }
+        
+        .mic-btn.active {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            animation: mic-pulse 1s ease-in-out infinite;
+            box-shadow: 0 10px 40px rgba(239, 68, 68, 0.4);
+        }
+        
+        @keyframes mic-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .mic-label {
+            text-align: center;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 30px;
+        }
+        
+        .camera-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 16px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        #video-preview {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 16px;
+        }
+        
+        #photo-canvas {
+            display: none;
+        }
+        
+        #captured-image {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 16px;
+            margin-top: 12px;
+            display: none;
+        }
+        
+        .camera-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: #fff;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 8px;
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.3);
+        }
+        
+        .camera-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(139, 92, 246, 0.4);
+        }
+        
+        .camera-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .camera-status {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.6);
+            margin-top: 12px;
+        }
+        
+        .results-images {
+            margin-bottom: 16px;
+        }
+        
+        .image-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .result-image-container {
+            flex: 1;
+            min-width: 200px;
+            max-width: 300px;
+        }
+        
+        .image-label {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .result-image {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
     </style>
 </head>
 <body>
@@ -234,6 +374,23 @@
     <p class="subtitle">Your friendly clinical assistant for navigation</p>
     
     <div class="container">
+        <button class="mic-btn" id="mic-btn" onclick="toggleListening()">🎤</button>
+        <p class="mic-label">Click to start/stop voice commands</p>
+        
+        <!-- Camera Section -->
+        <div class="camera-section">
+            <div class="camera-container">
+                <video id="video-preview" autoplay playsinline></video>
+            </div>
+            <canvas id="photo-canvas"></canvas>
+            <img id="captured-image" alt="Captured photo">
+            <div>
+                <button class="camera-btn" id="start-camera-btn" onclick="startCamera()">📷 Start Camera</button>
+                <button class="camera-btn" id="capture-btn" onclick="capturePhoto()" disabled>📸 Take Photo</button>
+            </div>
+            <p class="camera-status" id="camera-status">Camera not started</p>
+        </div>
+        
         <button class="main-btn" onclick="readAll()">
             <span class="icon">🔊</span>
             Read All Outputs
@@ -242,9 +399,21 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-icon">📷</div>
-                <h2>Vision Analysis</h2>
+                <h2>Vision Analysis (Navigation)</h2>
             </div>
-            <div class="text-content" id="vision-text">Loading...</div>
+            <div class="results-images" id="vision-images" style="display: none;">
+                <div class="image-row">
+                    <div class="result-image-container">
+                        <p class="image-label">🎯 Object Detection</p>
+                        <img id="bbox-image" class="result-image" alt="Bounding boxes">
+                    </div>
+                    <div class="result-image-container">
+                        <p class="image-label">📏 Depth Map</p>
+                        <img id="depth-image" class="result-image" alt="Depth map">
+                    </div>
+                </div>
+            </div>
+            <div class="text-content" id="vision-text">Say "take photo for navigation" to analyze your surroundings...</div>
             <button class="card-btn" onclick="speakVision()">
                 <span>🔊</span> Read This
             </button>
@@ -252,10 +421,10 @@
         
         <div class="card">
             <div class="card-header">
-                <div class="card-icon">🍽️</div>
-                <h2>Menu & Cash Analysis</h2>
+                <div class="card-icon">💵</div>
+                <h2>Money & Menu Analysis</h2>
             </div>
-            <div class="text-content" id="menu-text">Loading...</div>
+            <div class="text-content" id="menu-text">Say "take photo for money" or "take photo for menu" to analyze...</div>
             <button class="card-btn" onclick="speakMenu()">
                 <span>🔊</span> Read This
             </button>
@@ -270,11 +439,16 @@
     </div>
 
     <script>
-        // Text content from files
+        // API endpoint
+        const API_URL = 'http://localhost:8000';
+        
+        // Text content
         let visionText = '';
         let menuText = '';
+        let isListening = false;
+        let recognition = null;
         
-        const welcomeMessage = "Welcome to Halo Vision Companion. I'm your friendly clinical assistant. I will now read the analysis of your surroundings.";
+        const welcomeMessage = "Welcome to Halo Vision Companion. I'm your friendly clinical assistant. Please tell me what you would like to do. Say 'take photo for navigation' to analyze your surroundings. Or say 'take photo for money' to identify cash. You can also say 'take photo for menu' to read a menu.";
         
         // Load the text files and auto-read
         async function loadTexts() {
@@ -382,8 +556,272 @@ All prices include tax. Ask your server about daily specials.`;
             document.getElementById('status-text').textContent = msg;
         }
         
+        // ==================== CAMERA ====================
+        
+        let videoStream = null;
+        let capturedImageData = null;
+        
+        async function startCamera() {
+            try {
+                const video = document.getElementById('video-preview');
+                videoStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment', width: 1280, height: 720 } 
+                });
+                video.srcObject = videoStream;
+                
+                document.getElementById('start-camera-btn').disabled = true;
+                document.getElementById('capture-btn').disabled = false;
+                document.getElementById('camera-status').textContent = '✅ Camera ready - Say a command or click Take Photo';
+                
+                await speak("Camera is ready. Say menu, money, navigation, or surroundings to analyze.");
+            } catch (error) {
+                console.error('Camera error:', error);
+                document.getElementById('camera-status').textContent = '❌ Camera access denied';
+                await speak("Camera access was denied. Please allow camera access and try again.");
+            }
+        }
+        
+        function capturePhoto() {
+            const video = document.getElementById('video-preview');
+            const canvas = document.getElementById('photo-canvas');
+            const capturedImg = document.getElementById('captured-image');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            
+            // Get base64 image data
+            capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // Show captured image
+            capturedImg.src = capturedImageData;
+            capturedImg.style.display = 'block';
+            
+            document.getElementById('camera-status').textContent = '📸 Photo captured! Say a command to analyze.';
+            speak("Photo captured. Say menu or money for menu analysis, or say navigation for surroundings analysis.");
+        }
+        
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+        }
+        
+        // ==================== VOICE RECOGNITION ====================
+        
+        function initVoiceRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                console.error('Speech recognition not supported');
+                updateStatus('⚠️ Voice recognition not supported in this browser');
+                return;
+            }
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            
+            recognition.onresult = async (event) => {
+                const last = event.results.length - 1;
+                const transcript = event.results[last][0].transcript.toLowerCase().trim();
+                
+                console.log('🎤 Heard:', transcript);
+                updateStatus(`🎤 Heard: "${transcript}"`);
+                
+                // Check for navigation/vision commands (YOLO + depth + OpenAI)
+                if (transcript.includes('navigation') || transcript.includes('surroundings') ||
+                    transcript.includes('environment') || transcript.includes('around me') ||
+                    transcript.includes('where am i') || transcript.includes('what do you see')) {
+                    await handleVisionCommand();
+                }
+                // Check for money/cash commands
+                else if (transcript.includes('money') || transcript.includes('cash') ||
+                         transcript.includes('bill') || transcript.includes('dollar') ||
+                         transcript.includes('currency')) {
+                    await handleMenuCashCommand('money');
+                }
+                // Check for menu/food commands
+                else if (transcript.includes('menu') || transcript.includes('food') ||
+                         transcript.includes('restaurant') || transcript.includes('read the menu')) {
+                    await handleMenuCashCommand('menu');
+                }
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                if (event.error !== 'no-speech') {
+                    updateStatus(`⚠️ Error: ${event.error}`);
+                }
+            };
+            
+            recognition.onend = () => {
+                // Restart if still listening
+                if (isListening) {
+                    recognition.start();
+                }
+            };
+        }
+        
+        function startListening() {
+            if (!recognition) {
+                initVoiceRecognition();
+            }
+            if (recognition) {
+                isListening = true;
+                recognition.start();
+                updateStatus('🎤 Listening... Say "navigation", "money", or "menu"');
+                document.getElementById('mic-btn').classList.add('active');
+            }
+        }
+        
+        function stopListening() {
+            isListening = false;
+            if (recognition) {
+                recognition.stop();
+            }
+            updateStatus('🔇 Stopped listening');
+            document.getElementById('mic-btn').classList.remove('active');
+        }
+        
+        function toggleListening() {
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+        
+        // ==================== API COMMANDS ====================
+        
+        async function handleMenuCashCommand(type = 'money') {
+            stopListening();
+            
+            // Auto-capture if camera is running
+            if (videoStream) {
+                capturePhoto();
+                await new Promise(r => setTimeout(r, 500)); // Wait for capture
+            }
+            
+            if (!capturedImageData) {
+                await speak("Please start the camera first. Click the Start Camera button.");
+                updateStatus('⚠️ Camera not started');
+                startListening();
+                return;
+            }
+            
+            const typeLabel = type === 'money' ? 'money' : 'menu';
+            updateStatus(`💵 Analyzing ${typeLabel}... Please wait`);
+            await speak(`Taking photo and analyzing ${typeLabel}. Please wait.`);
+            
+            try {
+                const response = await fetch(`${API_URL}/analyze/menu-cash`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: capturedImageData, type: type })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    menuText = data.text;
+                    document.getElementById('menu-text').textContent = menuText;
+                    updateStatus(`🗣️ Reading ${typeLabel} analysis...`);
+                    await speak(menuText);
+                    updateStatus('✅ Done! Say another command.');
+                } else {
+                    await speak("Sorry, I couldn't analyze the image. Please try again.");
+                    updateStatus('❌ Analysis failed');
+                }
+            } catch (error) {
+                console.error('API error:', error);
+                await speak("Sorry, the server is not responding. Make sure the backend is running.");
+                updateStatus('❌ Server not responding');
+            }
+            
+            // Clear captured image for next capture
+            capturedImageData = null;
+            document.getElementById('captured-image').style.display = 'none';
+            startListening();
+        }
+        
+        async function handleVisionCommand() {
+            stopListening();
+            
+            // Auto-capture if camera is running
+            if (videoStream) {
+                capturePhoto();
+                await new Promise(r => setTimeout(r, 500)); // Wait for capture
+            }
+            
+            if (!capturedImageData) {
+                await speak("Please start the camera first. Click the Start Camera button.");
+                updateStatus('⚠️ Camera not started');
+                startListening();
+                return;
+            }
+            
+            updateStatus('📷 Analyzing surroundings... Please wait');
+            await speak("Taking photo and analyzing your surroundings. This may take a moment.");
+            
+            try {
+                const response = await fetch(`${API_URL}/analyze/vision`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: capturedImageData })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    visionText = data.text;
+                    document.getElementById('vision-text').textContent = visionText;
+                    
+                    // Show the result images if available
+                    if (data.bbox_image || data.depth_image) {
+                        document.getElementById('vision-images').style.display = 'block';
+                        if (data.bbox_image) {
+                            document.getElementById('bbox-image').src = data.bbox_image;
+                        }
+                        if (data.depth_image) {
+                            document.getElementById('depth-image').src = data.depth_image;
+                        }
+                    }
+                    
+                    updateStatus('🗣️ Reading navigation analysis...');
+                    await speak(visionText);
+                    updateStatus('✅ Done! Say another command.');
+                } else {
+                    await speak("Sorry, I couldn't analyze the surroundings. Please try again.");
+                    updateStatus('❌ Analysis failed');
+                }
+            } catch (error) {
+                console.error('API error:', error);
+                await speak("Sorry, the server is not responding. Make sure the backend is running.");
+                updateStatus('❌ Server not responding');
+            }
+            
+            // Clear captured image for next capture
+            capturedImageData = null;
+            document.getElementById('captured-image').style.display = 'none';
+            startListening();
+        }
+        
+        // ==================== INITIALIZATION ====================
+        
         // Load texts on page load
-        window.onload = loadTexts;
+        window.onload = async function() {
+            await loadTexts();
+            initVoiceRecognition();
+            
+            // Auto-start listening after welcome
+            setTimeout(() => {
+                startListening();
+            }, 2000);
+        };
     </script>
 </body>
 </html>
