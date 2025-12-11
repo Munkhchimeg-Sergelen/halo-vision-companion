@@ -1,6 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import './App.css';
 
+// Import real modules
+import { startRecording, stopRecording } from './modules/voice/mic.js';
+import { transcribeAudio } from './modules/voice/stt.js';
+import { speak } from './modules/voice/tts.js';
+import { captureFrame } from './modules/vision/camera.js';
+import { analyzeScene } from './modules/vision/vision_agent.js';
+import { orchestrate } from './modules/agent/orchestrator.js';
+
 function SimpleApp() {
   const [showCamera, setShowCamera] = useState(false);
   const [isConversationActive, setIsConversationActive] = useState(false);
@@ -8,39 +16,79 @@ function SimpleApp() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const recordingRef = useRef(false);
 
   // Initialize video element on mount
   useEffect(() => {
     console.log('App mounted, video ref:', videoRef.current);
   }, []);
 
-  // Conversation handlers
+  // Conversation handlers - REAL IMPLEMENTATION
   const toggleConversation = async () => {
     if (!isConversationActive) {
-      setIsConversationActive(true);
-      setStatus('🎤 Listening...');
-      
-      // Mock: Auto-stop after 5 seconds
-      setTimeout(() => {
-        setStatus('⏳ Processing...');
-        setTimeout(() => {
-          const response = "Hello! I'm Halo. How can I help you?";
-          setStatus('🗣️ Speaking...');
-          speak(response);
-          setTimeout(() => setStatus('✅ Ready'), 2000);
-        }, 1000);
-      }, 5000);
+      await startConversation();
     } else {
-      setIsConversationActive(false);
-      setStatus('✅ Conversation stopped');
-      setTimeout(() => setStatus('Ready'), 2000);
+      await stopConversation();
     }
   };
 
-  const speak = (text) => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      window.speechSynthesis.speak(utterance);
+  const startConversation = async () => {
+    try {
+      setIsConversationActive(true);
+      setStatus('🎤 Listening... Speak now');
+      recordingRef.current = true;
+      
+      // Start recording
+      await startRecording();
+      
+      // Auto-stop after 10 seconds (or user can click to stop)
+      setTimeout(async () => {
+        if (recordingRef.current) {
+          await stopConversation();
+        }
+      }, 10000);
+      
+    } catch (error) {
+      console.error('❌ Conversation failed:', error);
+      setStatus('❌ Error: ' + error.message);
+      setIsConversationActive(false);
+    }
+  };
+
+  const stopConversation = async () => {
+    try {
+      recordingRef.current = false;
+      setStatus('⏳ Processing your voice...');
+      
+      // Stop recording and get audio
+      const audioBlob = await stopRecording();
+      
+      // Transcribe audio
+      setStatus('🎧 Converting speech to text...');
+      const transcript = await transcribeAudio(audioBlob);
+      console.log('Transcript:', transcript);
+      
+      if (!transcript) {
+        setStatus('❌ Could not understand. Try again.');
+        setIsConversationActive(false);
+        return;
+      }
+      
+      // Get AI response
+      setStatus('🧠 Thinking...');
+      const response = await orchestrate(transcript);
+      
+      // Speak response
+      setStatus('🗣️ Speaking...');
+      await speak(response);
+      
+      setStatus('✅ Ready to help');
+      setIsConversationActive(false);
+      
+    } catch (error) {
+      console.error('❌ Stop conversation failed:', error);
+      setStatus('❌ Error: ' + error.message);
+      setIsConversationActive(false);
     }
   };
 
@@ -100,36 +148,40 @@ function SimpleApp() {
   };
 
   const capturePhoto = async () => {
-    console.log('📸 Capturing photo...');
-    setStatus('📸 Capturing...');
-    
-    // Capture to canvas
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    
-    if (canvas && video) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
-      console.log('✅ Photo captured to canvas');
+    try {
+      console.log('📸 Capturing photo...');
+      setStatus('📸 Capturing scene...');
+      
+      // Capture frame using real camera module
+      const base64Image = await captureFrame();
+      
+      if (!base64Image) {
+        setStatus('❌ Failed to capture image');
+        return;
+      }
+      
+      console.log('✅ Photo captured');
+      
+      // Analyze with real vision AI
+      setStatus('👁️ Analyzing scene with AI...');
+      const visionData = await analyzeScene(base64Image);
+      
+      console.log('Vision analysis:', visionData);
+      
+      // Get spoken description from orchestrator
+      setStatus('🧠 Generating description...');
+      const description = await orchestrate('Describe what you see', visionData);
+      
+      // Speak the description
+      setStatus('🗣️ Describing scene...');
+      await speak(description);
+      
+      setStatus('📷 Camera ready - Click to capture again');
+      
+    } catch (error) {
+      console.error('❌ Capture failed:', error);
+      setStatus('❌ Error: ' + error.message);
     }
-    
-    // Keep camera open (don't hide it)
-    // setShowCamera(false); // REMOVED - camera stays on!
-    
-    // Mock analysis
-    setTimeout(() => {
-      setStatus('🔍 Analyzing...');
-      setTimeout(() => {
-        const description = "I can see an office space with a desk and laptop.";
-        setStatus('🗣️ Describing...');
-        speak(description);
-        setTimeout(() => {
-          setStatus('📷 Live camera - Click to capture again');
-        }, 3000);
-      }, 1500);
-    }, 500);
   };
 
   return (
