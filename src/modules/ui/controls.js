@@ -2,7 +2,7 @@
 // ROLE 4: Integration, Frontend & Demo Engineer
 
 import { startRecording, stopRecording } from '../voice/mic.js';
-import { transcribeAudio } from '../voice/stt.js';
+import { startLiveSTT, stopLiveSTT } from '../voice/stt.js';
 import { speak } from '../voice/tts.js';
 import { captureFrame } from '../vision/camera.js';
 import { analyzeScene } from '../vision/vision_agent.js';
@@ -38,20 +38,25 @@ function setupVoiceButton() {
         return;
     }
     
-    // Add mousedown event - start recording
+    // Add mousedown event - start live speech recognition
     voiceBtn.addEventListener('mousedown', async () => {
         updateStatus('🎤 Listening...');
         voiceBtn.style.background = '#ff4444';
-        await startRecording();
+        // Start live speech recognition
+        await startLiveSTT((transcript) => {
+            // This will be called when speech is detected
+            console.log('📝 Live transcript:', transcript);
+        });
     });
     
-    // Add mouseup event - stop recording and process
+    // Add mouseup event - stop and process
     voiceBtn.addEventListener('mouseup', async () => {
         updateStatus('⏳ Processing...');
         voiceBtn.style.background = '#667eea';
         
-        const audioBlob = await stopRecording();
-        await handleVoiceInteraction(audioBlob);
+        // Stop speech recognition and get transcript
+        const transcript = await stopLiveSTT();
+        await handleVoiceInteraction(transcript);
     });
     
     // Add touch events for mobile
@@ -97,13 +102,12 @@ function setupCaptureButton() {
  * Handle voice interaction flow
  * @param {Blob} audioBlob - Recorded audio
  */
-async function handleVoiceInteraction(audioBlob) {
+async function handleVoiceInteraction(transcript) {
     try {
         // Show "processing" status
         updateStatus('🎯 Understanding...');
         
-        // Transcribe audio
-        const transcript = await transcribeAudio(audioBlob);
+        // Use the transcript directly (already transcribed live)
         
         if (!transcript || transcript.trim().length === 0) {
             updateStatus('⚠️ No speech detected - Ready');

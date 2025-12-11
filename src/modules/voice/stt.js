@@ -1,12 +1,11 @@
-// Speech-to-Text using Browser API (Fallback from ElevenLabs due to format issues)
+// Speech-to-Text using Browser Web Speech API (Real-time)
 // ROLE 1: Voice Pipeline Engineer
-
-const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-const STT_ENDPOINT = 'https://api.elevenlabs.io/v1/speech-to-text';
 
 // Browser Speech Recognition
 let recognition = null;
 let isListening = false;
+let currentTranscript = '';
+let onTranscriptCallback = null;
 
 /**
  * Initialize STT module
@@ -14,53 +13,110 @@ let isListening = false;
 export async function initializeSTT() {
     console.log('🎧 Initializing STT...');
     
-    // Try to use browser Speech Recognition
+    // Use browser Speech Recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
-    if (SpeechRecognition) {
-        recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
-        console.log('✅ Browser Speech Recognition available');
-    } else {
-        console.warn('⚠️ Browser Speech Recognition not supported');
+    if (!SpeechRecognition) {
+        console.error('❌ Browser Speech Recognition not supported');
+        return false;
     }
     
-    console.log('✅ STT initialized');
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;  // Keep listening
+    recognition.interimResults = true;  // Get results as you speak
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+    
+    console.log('✅ Browser Speech Recognition initialized');
     return true;
 }
 
 /**
- * Transcribe audio using Browser Speech Recognition
- * NOTE: Browser API doesn't use audio blob - it listens in real-time
- * The blob parameter is kept for compatibility but not used
- * @param {Blob} audioBlob - (Not used - kept for compatibility)
- * @returns {Promise<string>} Transcribed text
+ * Start live speech recognition
+ * @param {Function} callback - Called with interim transcripts
  */
-export async function transcribeAudio(audioBlob) {
-    console.log('🎯 Transcribing (MOCK for demo)...');
+export async function startLiveSTT(callback) {
+    if (!recognition) {
+        console.error('❌ Speech Recognition not initialized');
+        return;
+    }
     
-    // MOCK TRANSCRIPTION for hackathon demo
-    // In production, this would use actual STT
-    const mockTranscripts = [
-        "What's around me?",
-        "Read the menu to me",
-        "Where is the door?",
-        "Help me navigate",
-        "What can you see?"
-    ];
+    currentTranscript = '';
+    onTranscriptCallback = callback;
     
-    // Return a random mock transcript
-    const transcript = mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
+    recognition.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript + ' ';
+            } else {
+                interimTranscript += transcript;
+            }
+        }
+        
+        // Update current transcript
+        if (finalTranscript) {
+            currentTranscript += finalTranscript;
+            console.log('✅ Final transcript:', finalTranscript);
+        }
+        
+        if (interimTranscript && onTranscriptCallback) {
+            console.log('📝 Interim:', interimTranscript);
+        }
+    };
     
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 500));
+    recognition.onerror = (event) => {
+        console.error('❌ Speech recognition error:', event.error);
+        if (event.error === 'no-speech') {
+            console.log('⚠️ No speech detected');
+        }
+    };
     
-    console.log('✅ Mock Transcription:', transcript);
-    console.log('⚠️ NOTE: Using mock STT for demo. In production, would use ElevenLabs STT.');
+    recognition.onend = () => {
+        isListening = false;
+        console.log('🛑 Recognition ended');
+    };
     
-    return transcript;
+    try {
+        recognition.start();
+        isListening = true;
+        console.log('🎤 Live STT started - speak now!');
+    } catch (error) {
+        console.error('❌ Failed to start recognition:', error);
+        // If already running, that's okay
+        if (!error.message.includes('already')) {
+            throw error;
+        }
+    }
+}
+
+/**
+ * Stop live speech recognition and get final transcript
+ * @returns {Promise<string>} Final transcript
+ */
+export async function stopLiveSTT() {
+    return new Promise((resolve) => {
+        if (!recognition || !isListening) {
+            console.warn('⚠️ Recognition not running');
+            resolve(currentTranscript.trim());
+            return;
+        }
+        
+        // Give it a moment to process any final words
+        setTimeout(() => {
+            try {
+                recognition.stop();
+                console.log('✅ Final transcript:', currentTranscript.trim());
+                resolve(currentTranscript.trim());
+            } catch (error) {
+                console.error('❌ Error stopping recognition:', error);
+                resolve(currentTranscript.trim());
+            }
+        }, 300);
+    });
 }
 
 /**
