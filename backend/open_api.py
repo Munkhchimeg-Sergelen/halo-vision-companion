@@ -1,6 +1,7 @@
 import json
 from openai import OpenAI
 
+
 # Create OpenAI client (API key is read from the OPENAI_API_KEY env var)
 client = OpenAI()
 
@@ -17,6 +18,7 @@ def summarize_objects(detections: dict, language: str = "English") -> str:
     and get a natural language description.
     """
 
+    # JSON payload that includes both configuration and scene data
     payload = {
         "config": {
             "language": language,
@@ -27,7 +29,7 @@ def summarize_objects(detections: dict, language: str = "English") -> str:
                 "clear, simple and professional language."
             ),
         },
-        "scene": detections,  # this is {"objects": [...]}
+        "scene": detections, 
     }
 
     prompt = f"""
@@ -47,7 +49,7 @@ Instructions:
 """
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4o-mini",  # choose any available model you like
         messages=[
             {
                 "role": "system",
@@ -66,3 +68,10 @@ Instructions:
     )
 
     return response.choices[0].message.content
+
+
+if __name__ == "__main__":
+    detections = load_detections("detections.json")
+    description = summarize_objects(detections, language="English")
+    print("\n--- IMAGE DESCRIPTION ---\n")
+    print(description)
