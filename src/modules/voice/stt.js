@@ -1,8 +1,12 @@
-// Speech-to-Text using ElevenLabs
+// Speech-to-Text using Browser API (Fallback from ElevenLabs due to format issues)
 // ROLE 1: Voice Pipeline Engineer
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const STT_ENDPOINT = 'https://api.elevenlabs.io/v1/speech-to-text';
+
+// Browser Speech Recognition
+let recognition = null;
+let isListening = false;
 
 /**
  * Initialize STT module
@@ -10,66 +14,74 @@ const STT_ENDPOINT = 'https://api.elevenlabs.io/v1/speech-to-text';
 export async function initializeSTT() {
     console.log('🎧 Initializing STT...');
     
-    // TODO: Verify API key exists
-    if (!ELEVENLABS_API_KEY) {
-        console.warn('⚠️ ElevenLabs API key not found');
-        return false;
+    // Try to use browser Speech Recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        console.log('✅ Browser Speech Recognition available');
+    } else {
+        console.warn('⚠️ Browser Speech Recognition not supported');
     }
     
-    // TODO: Test connection (optional)
     console.log('✅ STT initialized');
     return true;
 }
 
 /**
- * Convert audio blob to text using ElevenLabs STT
- * @param {Blob} audioBlob - Audio data to transcribe
+ * Transcribe audio using Browser Speech Recognition
+ * NOTE: Browser API doesn't use audio blob - it listens in real-time
+ * The blob parameter is kept for compatibility but not used
+ * @param {Blob} audioBlob - (Not used - kept for compatibility)
  * @returns {Promise<string>} Transcribed text
  */
 export async function transcribeAudio(audioBlob) {
-    console.log('🎯 Transcribing audio...');
+    console.log('🎯 Transcribing with Browser Speech Recognition...');
     
-    if (!audioBlob || audioBlob.size === 0) {
-        console.warn('⚠️ No audio data to transcribe');
+    if (!recognition) {
+        console.error('❌ Speech Recognition not available');
         return '';
     }
     
-    try {
-        console.log('📦 Audio blob type:', audioBlob.type, 'size:', audioBlob.size);
+    return new Promise((resolve) => {
+        let finalTranscript = '';
         
-        // Prepare form data
-        const formData = new FormData();
-        // Determine file extension based on blob type
-        const fileExt = audioBlob.type.includes('mp4') ? 'mp4' : 
-                       audioBlob.type.includes('mpeg') ? 'mp3' : 'webm';
-        formData.append('audio', audioBlob, `recording.${fileExt}`);
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            finalTranscript = transcript;
+            console.log('✅ Transcription:', transcript);
+        };
         
-        console.log('📤 Sending to ElevenLabs STT as:', fileExt);
+        recognition.onend = () => {
+            isListening = false;
+            resolve(finalTranscript);
+        };
         
-        // Send to ElevenLabs STT API
-        const response = await fetch(STT_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'xi-api-key': ELEVENLABS_API_KEY
-            },
-            body: formData
-        });
+        recognition.onerror = (event) => {
+            console.error('❌ Speech recognition error:', event.error);
+            isListening = false;
+            resolve('');
+        };
         
-        if (!response.ok) {
-            throw new Error(`STT API error: ${response.status} ${response.statusText}`);
+        // Timeout after 10 seconds
+        setTimeout(() => {
+            if (isListening) {
+                recognition.stop();
+            }
+        }, 10000);
+        
+        try {
+            recognition.start();
+            isListening = true;
+            console.log('🎤 Browser STT listening...');
+        } catch (error) {
+            console.error('❌ Failed to start recognition:', error);
+            resolve('');
         }
-        
-        // Parse response
-        const data = await response.json();
-        const transcript = data.text || '';
-        
-        console.log('✅ Transcription:', transcript);
-        return transcript;
-        
-    } catch (error) {
-        handleSTTError(error);
-        return '';
-    }
+    });
 }
 
 /**
