@@ -2,7 +2,7 @@
 // ROLE 4: Integration, Frontend & Demo Engineer
 
 import { startRecording, stopRecording } from '../voice/mic.js';
-import { startLiveSTT, stopLiveSTT } from '../voice/stt.js';
+import { transcribeAudio } from '../voice/stt.js';
 import { speak } from '../voice/tts.js';
 import { captureFrame } from '../vision/camera.js';
 import { analyzeScene } from '../vision/vision_agent.js';
@@ -38,24 +38,30 @@ function setupVoiceButton() {
         return;
     }
     
-    // Add mousedown event - start live speech recognition
+    // Add mousedown event - start recording
     voiceBtn.addEventListener('mousedown', async () => {
-        updateStatus('🎤 Listening...');
+        updateStatus('🎤 Listening... (hold and speak)');
         voiceBtn.style.background = '#ff4444';
-        // Start live speech recognition
-        await startLiveSTT((transcript) => {
-            // This will be called when speech is detected
-            console.log('📝 Live transcript:', transcript);
-        });
+        await startRecording();
     });
     
-    // Add mouseup event - stop and process
+    // Add mouseup event - stop recording and transcribe
     voiceBtn.addEventListener('mouseup', async () => {
         updateStatus('⏳ Processing...');
         voiceBtn.style.background = '#667eea';
         
-        // Stop speech recognition and get transcript
-        const transcript = await stopLiveSTT();
+        // Stop recording and get audio blob
+        const audioBlob = await stopRecording();
+        
+        if (!audioBlob || audioBlob.size === 0) {
+            updateStatus('⚠️ No audio recorded - Ready');
+            return;
+        }
+        
+        // Transcribe the audio
+        updateStatus('🎯 Transcribing...');
+        const transcript = await transcribeAudio(audioBlob);
+        
         await handleVoiceInteraction(transcript);
     });
     
@@ -72,8 +78,19 @@ function setupVoiceButton() {
         updateStatus('⏳ Processing...');
         voiceBtn.style.background = '#667eea';
         
+        // Stop recording and get audio blob
         const audioBlob = await stopRecording();
-        await handleVoiceInteraction(audioBlob);
+        
+        if (!audioBlob || audioBlob.size === 0) {
+            updateStatus('⚠️ No audio recorded - Ready');
+            return;
+        }
+        
+        // Transcribe the audio
+        updateStatus('🎯 Transcribing...');
+        const transcript = await transcribeAudio(audioBlob);
+        
+        await handleVoiceInteraction(transcript);
     });
     
     console.log('✅ Voice button configured');

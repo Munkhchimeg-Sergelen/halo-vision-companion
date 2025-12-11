@@ -1,11 +1,8 @@
-// Speech-to-Text using Browser Web Speech API (Real-time)
+// Speech-to-Text using ElevenLabs API
 // ROLE 1: Voice Pipeline Engineer
 
-// Browser Speech Recognition
-let recognition = null;
-let isListening = false;
-let currentTranscript = '';
-let onTranscriptCallback = null;
+const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
+const STT_ENDPOINT = 'https://api.elevenlabs.io/v1/speech-to-text';
 
 /**
  * Initialize STT module
@@ -13,110 +10,93 @@ let onTranscriptCallback = null;
 export async function initializeSTT() {
     console.log('🎧 Initializing STT...');
     
-    // Use browser Speech Recognition
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-        console.error('❌ Browser Speech Recognition not supported');
+    if (!ELEVENLABS_API_KEY) {
+        console.warn('⚠️ ElevenLabs API key not found');
         return false;
     }
     
-    recognition = new SpeechRecognition();
-    recognition.continuous = true;  // Keep listening
-    recognition.interimResults = true;  // Get results as you speak
-    recognition.lang = 'en-US';
-    recognition.maxAlternatives = 1;
-    
-    console.log('✅ Browser Speech Recognition initialized');
+    console.log('✅ ElevenLabs STT initialized');
     return true;
 }
 
 /**
- * Start live speech recognition
+ * Start live speech recognition (placeholder - we use recorded audio)
  * @param {Function} callback - Called with interim transcripts
  */
 export async function startLiveSTT(callback) {
-    if (!recognition) {
-        console.error('❌ Speech Recognition not initialized');
-        return;
-    }
-    
-    currentTranscript = '';
-    onTranscriptCallback = callback;
-    
-    recognition.onresult = (event) => {
-        let interimTranscript = '';
-        let finalTranscript = '';
-        
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-                finalTranscript += transcript + ' ';
-            } else {
-                interimTranscript += transcript;
-            }
-        }
-        
-        // Update current transcript
-        if (finalTranscript) {
-            currentTranscript += finalTranscript;
-            console.log('✅ Final transcript:', finalTranscript);
-        }
-        
-        if (interimTranscript && onTranscriptCallback) {
-            console.log('📝 Interim:', interimTranscript);
-        }
-    };
-    
-    recognition.onerror = (event) => {
-        console.error('❌ Speech recognition error:', event.error);
-        if (event.error === 'no-speech') {
-            console.log('⚠️ No speech detected');
-        }
-    };
-    
-    recognition.onend = () => {
-        isListening = false;
-        console.log('🛑 Recognition ended');
-    };
-    
-    try {
-        recognition.start();
-        isListening = true;
-        console.log('🎤 Live STT started - speak now!');
-    } catch (error) {
-        console.error('❌ Failed to start recognition:', error);
-        // If already running, that's okay
-        if (!error.message.includes('already')) {
-            throw error;
-        }
-    }
+    console.log('🎤 Recording started for STT...');
+    // Recording is handled by mic.js
 }
 
 /**
  * Stop live speech recognition and get final transcript
+ * This is called after recording stops - we transcribe the recorded audio
  * @returns {Promise<string>} Final transcript
  */
 export async function stopLiveSTT() {
-    return new Promise((resolve) => {
-        if (!recognition || !isListening) {
-            console.warn('⚠️ Recognition not running');
-            resolve(currentTranscript.trim());
-            return;
+    // This will be called but actual transcription happens via transcribeAudio
+    console.log('⏹️ Recording stopped, ready for transcription');
+    return '';
+}
+
+/**
+ * Transcribe audio blob using ElevenLabs STT API
+ * @param {Blob} audioBlob - Audio data to transcribe
+ * @returns {Promise<string>} Transcribed text
+ */
+export async function transcribeAudio(audioBlob) {
+    console.log('🎯 Transcribing audio with ElevenLabs...');
+    
+    if (!audioBlob || audioBlob.size === 0) {
+        console.warn('⚠️ No audio data to transcribe');
+        return '';
+    }
+    
+    console.log('📦 Audio blob type:', audioBlob.type, 'size:', audioBlob.size);
+    
+    try {
+        const formData = new FormData();
+        
+        // ElevenLabs accepts: mp3, mp4, mpeg, mpga, m4a, wav, webm
+        // Determine the best filename based on MIME type
+        let filename = 'audio.webm';
+        if (audioBlob.type.includes('mp4')) {
+            filename = 'audio.mp4';
+        } else if (audioBlob.type.includes('webm')) {
+            filename = 'audio.webm';
+        } else if (audioBlob.type.includes('wav')) {
+            filename = 'audio.wav';
         }
         
-        // Give it a moment to process any final words
-        setTimeout(() => {
-            try {
-                recognition.stop();
-                console.log('✅ Final transcript:', currentTranscript.trim());
-                resolve(currentTranscript.trim());
-            } catch (error) {
-                console.error('❌ Error stopping recognition:', error);
-                resolve(currentTranscript.trim());
-            }
-        }, 300);
-    });
+        formData.append('file', audioBlob, filename);
+        formData.append('model_id', 'scribe_v1');
+        
+        console.log('📤 Sending to ElevenLabs STT as:', filename);
+        
+        const response = await fetch(STT_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'xi-api-key': ELEVENLABS_API_KEY
+            },
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ STT API error response:', errorText);
+            throw new Error(`STT API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const transcript = data.text || '';
+        
+        console.log('✅ Transcription:', transcript);
+        return transcript;
+        
+    } catch (error) {
+        console.error('❌ STT Error:', error);
+        return '';
+    }
 }
 
 /**
