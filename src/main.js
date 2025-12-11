@@ -26,53 +26,50 @@ async function initializeApp() {
     updateStatus('⏳ Initializing...');
     
     try {
-        // TODO: Initialize each module
-        // TODO: Handle initialization failures gracefully
+        // Initialize each module
         
         // Initialize microphone
-        // const micReady = await initializeMicrophone();
-        // if (!micReady) {
-        //     console.warn('⚠️ Microphone initialization failed');
-        // }
+        const micReady = await initializeMicrophone();
+        if (!micReady) {
+            console.warn('⚠️ Microphone initialization failed');
+        }
         
         // Initialize STT
-        // const sttReady = await initializeSTT();
-        // if (!sttReady) {
-        //     console.warn('⚠️ STT initialization failed');
-        // }
+        const sttReady = await initializeSTT();
+        if (!sttReady) {
+            console.warn('⚠️ STT initialization failed');
+        }
         
         // Initialize TTS
-        // const ttsReady = await initializeTTS();
-        // if (!ttsReady) {
-        //     console.warn('⚠️ TTS initialization failed');
-        // }
+        const ttsReady = await initializeTTS();
+        if (!ttsReady) {
+            console.warn('⚠️ TTS initialization failed');
+        }
         
         // Initialize camera
-        // const cameraReady = await initializeCamera();
-        // if (!cameraReady) {
-        //     console.warn('⚠️ Camera initialization failed');
-        // }
+        const cameraReady = await initializeCamera();
+        if (!cameraReady) {
+            console.warn('⚠️ Camera initialization failed');
+        }
         
         // Initialize vision
-        // const visionReady = await initializeVision();
-        // if (!visionReady) {
-        //     console.warn('⚠️ Vision initialization failed');
-        // }
+        const visionReady = await initializeVision();
+        if (!visionReady) {
+            console.warn('⚠️ Vision initialization failed');
+        }
         
         // Initialize orchestrator
-        // const orchestratorReady = await initializeOrchestrator();
-        // if (!orchestratorReady) {
-        //     console.warn('⚠️ Orchestrator initialization failed');
-        // }
+        const orchestratorReady = await initializeOrchestrator();
+        if (!orchestratorReady) {
+            console.warn('⚠️ Orchestrator initialization failed');
+        }
         
         // Initialize UI (always do this last)
         initializeUI();
         
-        // TODO: Check if all critical modules are ready
-        // appState.initialized = micReady && sttReady && ttsReady && 
-        //                        cameraReady && visionReady && orchestratorReady;
-        
-        appState.initialized = true;
+        // Check if all critical modules are ready
+        appState.initialized = micReady && sttReady && ttsReady && 
+                               cameraReady && visionReady && orchestratorReady;
         
         if (appState.initialized) {
             console.log('✅ All systems ready!');

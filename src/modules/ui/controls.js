@@ -38,32 +38,60 @@ function setupVoiceButton() {
         return;
     }
     
-    // TODO: Add mousedown event - start recording
-    // voiceBtn.addEventListener('mousedown', async () => {
-    //     updateStatus('🎤 Listening...');
-    //     voiceBtn.style.background = '#ff4444';
-    //     await startRecording();
-    // });
+    // Add mousedown event - start recording
+    voiceBtn.addEventListener('mousedown', async () => {
+        updateStatus('🎤 Listening... (hold and speak)');
+        voiceBtn.style.background = '#ff4444';
+        await startRecording();
+    });
     
-    // TODO: Add mouseup event - stop recording and process
-    // voiceBtn.addEventListener('mouseup', async () => {
-    //     updateStatus('⏳ Processing...');
-    //     voiceBtn.style.background = '#667eea';
-    //     
-    //     const audioBlob = await stopRecording();
-    //     await handleVoiceInteraction(audioBlob);
-    // });
+    // Add mouseup event - stop recording and transcribe
+    voiceBtn.addEventListener('mouseup', async () => {
+        updateStatus('⏳ Processing...');
+        voiceBtn.style.background = '#667eea';
+        
+        // Stop recording and get audio blob
+        const audioBlob = await stopRecording();
+        
+        if (!audioBlob || audioBlob.size === 0) {
+            updateStatus('⚠️ No audio recorded - Ready');
+            return;
+        }
+        
+        // Transcribe the audio
+        updateStatus('🎯 Transcribing...');
+        const transcript = await transcribeAudio(audioBlob);
+        
+        await handleVoiceInteraction(transcript);
+    });
     
-    // TODO: Add touch events for mobile
-    // voiceBtn.addEventListener('touchstart', async (e) => {
-    //     e.preventDefault();
-    //     // Same as mousedown
-    // });
+    // Add touch events for mobile
+    voiceBtn.addEventListener('touchstart', async (e) => {
+        e.preventDefault();
+        updateStatus('🎤 Listening...');
+        voiceBtn.style.background = '#ff4444';
+        await startRecording();
+    });
     
-    // voiceBtn.addEventListener('touchend', async (e) => {
-    //     e.preventDefault();
-    //     // Same as mouseup
-    // });
+    voiceBtn.addEventListener('touchend', async (e) => {
+        e.preventDefault();
+        updateStatus('⏳ Processing...');
+        voiceBtn.style.background = '#667eea';
+        
+        // Stop recording and get audio blob
+        const audioBlob = await stopRecording();
+        
+        if (!audioBlob || audioBlob.size === 0) {
+            updateStatus('⚠️ No audio recorded - Ready');
+            return;
+        }
+        
+        // Transcribe the audio
+        updateStatus('🎯 Transcribing...');
+        const transcript = await transcribeAudio(audioBlob);
+        
+        await handleVoiceInteraction(transcript);
+    });
     
     console.log('✅ Voice button configured');
 }
@@ -79,10 +107,10 @@ function setupCaptureButton() {
         return;
     }
     
-    // TODO: Add click event - capture and analyze
-    // captureBtn.addEventListener('click', async () => {
-    //     await handleSceneCapture();
-    // });
+    // Add click event - capture and analyze
+    captureBtn.addEventListener('click', async () => {
+        await handleSceneCapture();
+    });
     
     console.log('✅ Capture button configured');
 }
@@ -91,32 +119,36 @@ function setupCaptureButton() {
  * Handle voice interaction flow
  * @param {Blob} audioBlob - Recorded audio
  */
-async function handleVoiceInteraction(audioBlob) {
+async function handleVoiceInteraction(transcript) {
     try {
-        // TODO: Show "processing" status
+        // Show "processing" status
         updateStatus('🎯 Understanding...');
         
-        // TODO: Transcribe audio
-        // const transcript = await transcribeAudio(audioBlob);
+        // Use the transcript directly (already transcribed live)
         
-        // TODO: Add to transcript log
-        // addToTranscript('user', transcript);
+        if (!transcript || transcript.trim().length === 0) {
+            updateStatus('⚠️ No speech detected - Ready');
+            return;
+        }
         
-        // TODO: Get current vision data if available
-        // const visionContext = lastVisionData;
+        // Add to transcript log
+        addToTranscript('user', transcript);
         
-        // TODO: Send to orchestrator
+        // Get current vision data if available
+        const visionContext = lastVisionData;
+        
+        // Send to orchestrator
         updateStatus('🧠 Thinking...');
-        // const response = await orchestrate(transcript, visionContext);
+        const response = await orchestrate(transcript, visionContext);
         
-        // TODO: Add response to transcript
-        // addToTranscript('agent', response);
+        // Add response to transcript
+        addToTranscript('agent', response);
         
-        // TODO: Speak response
+        // Speak response
         updateStatus('🗣️ Speaking...');
-        // await speak(response);
+        await speak(response);
         
-        updateStatus('✅ Ready');
+        updateStatus('✅ Ready - Hold button to speak');
         
     } catch (error) {
         console.error('❌ Voice interaction failed:', error);
@@ -127,33 +159,43 @@ async function handleVoiceInteraction(audioBlob) {
 
 /**
  * Handle scene capture flow
+ * Captures camera frame and analyzes with smart detection (menu/cash/scene)
  */
 async function handleSceneCapture() {
     try {
-        // TODO: Show "capturing" status
         updateStatus('📸 Capturing scene...');
         
-        // TODO: Capture frame
-        // const base64Image = await captureFrame();
+        // Capture frame from camera
+        const base64Image = await captureFrame();
         
-        // TODO: Analyze with vision API
-        updateStatus('🔍 Analyzing...');
-        // const visionData = await analyzeScene(base64Image);
+        if (!base64Image) {
+            updateStatus('⚠️ Could not capture image - Ready');
+            await speak('I could not capture an image. Please make sure the camera is working.');
+            return;
+        }
         
-        // TODO: Store vision data for context
-        // lastVisionData = visionData;
+        // Analyze with vision API (smart detection: menu, cash, or scene)
+        updateStatus('🔍 Analyzing what I see...');
+        const visionData = await analyzeScene(base64Image);
         
-        // TODO: Optionally speak description
-        // if (visionData && visionData.scene_description) {
-        //     addToTranscript('agent', `Scene captured: ${visionData.scene_description}`);
-        //     await speak(visionData.scene_description);
-        // }
+        // Store vision data for context in future conversations
+        lastVisionData = visionData;
         
-        updateStatus('✅ Scene captured - Ready');
+        // Get the spoken description
+        const description = visionData.spoken_description || 'I could not analyze the image.';
+        
+        // Add to transcript and speak
+        addToTranscript('agent', `[${visionData.type}] ${description}`);
+        
+        updateStatus('🗣️ Describing what I see...');
+        await speak(description);
+        
+        updateStatus('✅ Ready - Hold to speak or capture again');
         
     } catch (error) {
         console.error('❌ Scene capture failed:', error);
         showError('Failed to capture scene. Please try again.');
+        await speak('Sorry, I had trouble analyzing the scene. Please try again.');
         updateStatus('❌ Error - Ready');
     }
 }

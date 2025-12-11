@@ -43,54 +43,58 @@ export async function orchestrate(userTranscript, visionData = null) {
     console.log('Vision data:', visionData);
     
     try {
-        // TODO: Detect user intent
+        // Detect user intent
         const intent = detectIntent(userTranscript);
         console.log('Detected intent:', intent);
         
-        // TODO: Format request with context
+        // Format request with context
         const userMessage = formatUserRequest(userTranscript, visionData);
         
-        // TODO: Add to conversation history
+        // Add to conversation history
         conversationHistory.push(userMessage);
         
-        // TODO: Call OpenAI API
-        // const response = await fetch(CHAT_ENDPOINT, {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //         'Authorization': `Bearer ${OPENAI_API_KEY}`
-        //     },
-        //     body: JSON.stringify({
-        //         model: 'gpt-4',
-        //         messages: conversationHistory,
-        //         max_tokens: 150,
-        //         temperature: 0.7
-        //     })
-        // });
+        // Call OpenAI API
+        console.log('📤 Calling OpenAI API...');
+        const response = await fetch(CHAT_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: conversationHistory,
+                max_tokens: 150,
+                temperature: 0.7
+            })
+        });
         
-        // TODO: Parse response
-        // const data = await response.json();
-        // const assistantMessage = data.choices[0].message.content;
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ OpenAI API error:', errorText);
+            throw new Error(`OpenAI API error: ${response.status}`);
+        }
         
-        // TODO: Add response to history
-        // conversationHistory.push({
-        //     role: 'assistant',
-        //     content: assistantMessage
-        // });
+        // Parse response
+        const data = await response.json();
+        const assistantMessage = data.choices[0].message.content;
         
-        // TODO: Trim history if too long (keep last 10 messages + system)
-        // if (conversationHistory.length > 11) {
-        //     conversationHistory = [
-        //         conversationHistory[0], // Keep system prompt
-        //         ...conversationHistory.slice(-10)
-        //     ];
-        // }
+        // Add response to history
+        conversationHistory.push({
+            role: 'assistant',
+            content: assistantMessage
+        });
         
-        // console.log('✅ Response generated:', assistantMessage);
-        // return assistantMessage;
+        // Trim history if too long (keep last 10 messages + system)
+        if (conversationHistory.length > 11) {
+            conversationHistory = [
+                conversationHistory[0], // Keep system prompt
+                ...conversationHistory.slice(-10)
+            ];
+        }
         
-        // Placeholder
-        return '';
+        console.log('✅ Response generated:', assistantMessage);
+        return assistantMessage;
         
     } catch (error) {
         console.error('❌ Orchestration failed:', error);
