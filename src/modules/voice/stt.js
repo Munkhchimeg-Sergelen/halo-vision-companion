@@ -29,30 +29,35 @@ export async function initializeSTT() {
 export async function transcribeAudio(audioBlob) {
     console.log('🎯 Transcribing audio...');
     
-    try {
-        // TODO: Prepare form data
-        // const formData = new FormData();
-        // formData.append('audio', audioBlob);
-        
-        // TODO: Send to ElevenLabs STT API
-        // const response = await fetch(STT_ENDPOINT, {
-        //     method: 'POST',
-        //     headers: {
-        //         'xi-api-key': ELEVENLABS_API_KEY
-        //     },
-        //     body: formData
-        // });
-        
-        // TODO: Parse response
-        // const data = await response.json();
-        // const transcript = data.text;
-        
-        // TODO: Return transcript
-        // console.log('✅ Transcription:', transcript);
-        // return transcript;
-        
-        // Placeholder
+    if (!audioBlob || audioBlob.size === 0) {
+        console.warn('⚠️ No audio data to transcribe');
         return '';
+    }
+    
+    try {
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.webm');
+        
+        // Send to ElevenLabs STT API
+        const response = await fetch(STT_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'xi-api-key': ELEVENLABS_API_KEY
+            },
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`STT API error: ${response.status} ${response.statusText}`);
+        }
+        
+        // Parse response
+        const data = await response.json();
+        const transcript = data.text || '';
+        
+        console.log('✅ Transcription:', transcript);
+        return transcript;
         
     } catch (error) {
         handleSTTError(error);
@@ -65,6 +70,14 @@ export async function transcribeAudio(audioBlob) {
  */
 function handleSTTError(error) {
     console.error('❌ STT Error:', error);
-    // TODO: Implement user-friendly error handling
-    // TODO: Retry logic if needed
+    
+    if (error.message.includes('401')) {
+        alert('API key error. Please check your ElevenLabs API key.');
+    } else if (error.message.includes('429')) {
+        alert('Rate limit exceeded. Please wait a moment and try again.');
+    } else if (error.message.includes('Network')) {
+        alert('Network error. Please check your internet connection.');
+    } else {
+        console.error('Transcription failed:', error.message);
+    }
 }
