@@ -15,22 +15,21 @@ export async function initializeMicrophone() {
     
     try {
         // Request microphone access
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        // Create MediaRecorder instance
-        mediaRecorder = new MediaRecorder(stream);
-        
-        // Set up event listeners for dataavailable
-        mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-                audioChunks.push(event.data);
-            }
-        };
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                sampleRate: 44100
+            } 
+        });
         
         console.log('✅ Microphone initialized');
         return true;
     } catch (error) {
         console.error('❌ Microphone initialization failed:', error);
+        if (error.name === 'NotAllowedError') {
+            alert('Please allow microphone access to use Halo!');
+        }
         return false;
     }
 }
@@ -41,14 +40,47 @@ export async function initializeMicrophone() {
  * TODO: Collect audio chunks
  */
 export async function startRecording() {
-    console.log('🔴 Recording started');
+    console.log('🔴 Starting recording...');
+    
+    if (!stream) {
+        console.error('❌ No audio stream available. Did you initialize microphone?');
+        return;
+    }
     
     // Clear previous audio chunks
     audioChunks = [];
     
-    if (mediaRecorder && mediaRecorder.state === 'inactive') {
+    // Create new MediaRecorder each time for reliability
+    try {
+        // Try different mime types in order of preference
+        let mimeType = 'audio/webm';
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            mimeType = 'audio/webm;codecs=opus';
+        }
+        
+        console.log('📼 Creating MediaRecorder with:', mimeType);
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        
+        // Set up data collection
+        mediaRecorder.ondataavailable = (event) => {
+            console.log('📦 Data chunk received:', event.data.size, 'bytes');
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+            }
+        };
+        
+        mediaRecorder.onerror = (error) => {
+            console.error('❌ MediaRecorder error:', error);
+        };
+        
         // Start recording
         mediaRecorder.start();
+        console.log('✅ Recording started, state:', mediaRecorder.state);
+        
+    } catch (error) {
+        console.error('❌ Failed to start recording:', error);
     }
 }
 
@@ -58,22 +90,45 @@ export async function startRecording() {
  * TODO: Return audio data
  */
 export async function stopRecording() {
-    console.log('⏹️ Recording stopped');
+    console.log('⏹️ Stopping recording...');
     
     return new Promise((resolve) => {
-        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        if (!mediaRecorder) {
+            console.warn('⚠️ MediaRecorder not initialized');
             resolve(null);
+            return;
+        }
+        
+        console.log('📊 MediaRecorder state:', mediaRecorder.state);
+        
+        if (mediaRecorder.state === 'inactive') {
+            console.warn('⚠️ MediaRecorder already inactive');
+            // Try to return whatever we have
+            if (audioChunks.length > 0) {
+                const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+                console.log('✅ Audio blob from chunks:', audioBlob.size, 'bytes');
+                resolve(audioBlob);
+            } else {
+                resolve(null);
+            }
             return;
         }
         
         // Set up onstop handler
         mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+            console.log('✅ Audio blob created:', audioBlob.size, 'bytes', audioBlob.type);
             resolve(audioBlob);
         };
         
         // Stop the recorder
-        mediaRecorder.stop();
+        try {
+            mediaRecorder.stop();
+            console.log('✅ Stop command sent');
+        } catch (error) {
+            console.error('❌ Error stopping recorder:', error);
+            resolve(null);
+        }
     });
 }
 

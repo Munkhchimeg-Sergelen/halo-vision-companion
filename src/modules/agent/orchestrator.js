@@ -53,32 +53,31 @@ export async function orchestrate(userTranscript, visionData = null) {
         // Add to conversation history
         conversationHistory.push(userMessage);
         
-        // MOCK: Generate contextual response based on intent and vision data
-        // TODO: Replace with real OpenAI API call
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+        // Call OpenAI API
+        console.log('📤 Calling OpenAI API...');
+        const response = await fetch(CHAT_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: conversationHistory,
+                max_tokens: 150,
+                temperature: 0.7
+            })
+        });
         
-        let assistantMessage = '';
-        
-        if (intent === 'scene' && visionData) {
-            assistantMessage = visionData.scene_description || "I can see your surroundings. Let me describe what's around you.";
-        } else if (intent === 'navigation' && visionData) {
-            const hints = visionData.navigation_hints || [];
-            assistantMessage = hints.length > 0 
-                ? `Here's how to navigate: ${hints.join('. ')}.`
-                : "I can help you navigate. The path ahead appears clear.";
-        } else if (intent === 'text' && visionData) {
-            const texts = visionData.text_detected || [];
-            assistantMessage = texts.length > 0
-                ? `I can see the following text: ${texts.join(', ')}.`
-                : "I don't see any readable text in the current view.";
-        } else {
-            const responses = [
-                "I'm here to help you. You can ask me to describe your surroundings, read text, or help you navigate.",
-                "I'm ready to assist. Would you like me to capture and describe what's around you?",
-                "How can I help you today? I can describe scenes, read text, or guide you through spaces."
-            ];
-            assistantMessage = responses[Math.floor(Math.random() * responses.length)];
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ OpenAI API error:', errorText);
+            throw new Error(`OpenAI API error: ${response.status}`);
         }
+        
+        // Parse response
+        const data = await response.json();
+        const assistantMessage = data.choices[0].message.content;
         
         // Add response to history
         conversationHistory.push({
@@ -94,42 +93,8 @@ export async function orchestrate(userTranscript, visionData = null) {
             ];
         }
         
-        console.log('✅ Response generated (MOCK):', assistantMessage);
-        return assistantMessage;
-        
-        /* REAL IMPLEMENTATION (uncomment when API key is ready):
-        const response = await fetch(CHAT_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${OPENAI_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-4',
-                messages: conversationHistory,
-                max_tokens: 150,
-                temperature: 0.7
-            })
-        });
-        
-        const data = await response.json();
-        const assistantMessage = data.choices[0].message.content;
-        
-        conversationHistory.push({
-            role: 'assistant',
-            content: assistantMessage
-        });
-        
-        if (conversationHistory.length > 11) {
-            conversationHistory = [
-                conversationHistory[0],
-                ...conversationHistory.slice(-10)
-            ];
-        }
-        
         console.log('✅ Response generated:', assistantMessage);
         return assistantMessage;
-        */
         
     } catch (error) {
         console.error('❌ Orchestration failed:', error);

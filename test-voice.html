@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Voice Pipeline</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background: #6c5ce7;
+            color: white;
+        }
+        button:hover {
+            background: #5f4dd1;
+        }
+        button:active {
+            background: #4a3ba5;
+        }
+        #status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #16213e;
+            border-radius: 8px;
+            min-height: 50px;
+        }
+        .recording {
+            background: #e74c3c !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎤 Voice Pipeline Test</h1>
+    
+    <div id="status">Ready to test...</div>
+    
+    <button id="recordBtn">Hold to Record</button>
+    <button id="testTTS">Test TTS: "Hello World"</button>
+    
+    <script type="module">
+        import { initializeMicrophone, startRecording, stopRecording } from './src/modules/voice/mic.js';
+        import { initializeSTT, transcribeAudio } from './src/modules/voice/stt.js';
+        import { initializeTTS, speak } from './src/modules/voice/tts.js';
+        
+        const status = document.getElementById('status');
+        const recordBtn = document.getElementById('recordBtn');
+        const testTTSBtn = document.getElementById('testTTS');
+        
+        // Initialize
+        status.textContent = 'Initializing...';
+        await initializeMicrophone();
+        await initializeSTT();
+        await initializeTTS();
+        status.textContent = '✅ Ready! Hold button and speak.';
+        
+        // Record button
+        let isRecording = false;
+        
+        recordBtn.addEventListener('mousedown', async () => {
+            recordBtn.classList.add('recording');
+            recordBtn.textContent = '🔴 Recording...';
+            status.textContent = 'Recording... Speak now!';
+            await startRecording();
+            isRecording = true;
+        });
+        
+        recordBtn.addEventListener('mouseup', async () => {
+            if (!isRecording) return;
+            
+            recordBtn.classList.remove('recording');
+            recordBtn.textContent = 'Hold to Record';
+            status.textContent = 'Processing...';
+            
+            try {
+                const audioBlob = await stopRecording();
+                status.textContent = `Got ${audioBlob.size} bytes. Transcribing...`;
+                
+                const transcript = await transcribeAudio(audioBlob);
+                status.textContent = `You said: "${transcript}"`;
+                
+                // Echo it back
+                if (transcript) {
+                    status.textContent += ' - Speaking back...';
+                    await speak(`You said: ${transcript}`);
+                    status.textContent = '✅ Done! Try again.';
+                }
+            } catch (error) {
+                status.textContent = '❌ Error: ' + error.message;
+            }
+            
+            isRecording = false;
+        });
+        
+        // Test TTS button
+        testTTSBtn.addEventListener('click', async () => {
+            status.textContent = 'Testing TTS...';
+            try {
+                await speak('Hello! This is Halo, your vision companion.');
+                status.textContent = '✅ TTS works!';
+            } catch (error) {
+                status.textContent = '❌ TTS Error: ' + error.message;
+            }
+        });
+        
+        console.log('✅ Test page loaded!');
+        console.log('1. Click "Test TTS" to test speech output');
+        console.log('2. Hold "Record" button and speak to test full pipeline');
+    </script>
+</body>
+</html>

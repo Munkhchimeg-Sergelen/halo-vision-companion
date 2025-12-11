@@ -15,12 +15,20 @@ export async function initializeCamera() {
         videoElement = document.getElementById('camera');
         canvasElement = document.getElementById('canvas');
         
+<<<<<<< HEAD
         // Request camera permissions
+=======
+        // Request camera permissions (prefer back camera for mobile)
+>>>>>>> origin/feature/voice-pipeline
         stream = await navigator.mediaDevices.getUserMedia({ 
             video: { 
                 width: { ideal: 1280 },
                 height: { ideal: 720 },
+<<<<<<< HEAD
                 facingMode: 'environment' // Use back camera on mobile
+=======
+                facingMode: { ideal: 'environment' } // Back camera
+>>>>>>> origin/feature/voice-pipeline
             } 
         });
         
@@ -32,6 +40,9 @@ export async function initializeCamera() {
         return true;
     } catch (error) {
         console.error('❌ Camera initialization failed:', error);
+        if (error.name === 'NotAllowedError') {
+            alert('Please allow camera access to use scene capture!');
+        }
         return false;
     }
 }
@@ -49,6 +60,7 @@ export async function captureFrame() {
             return null;
         }
         
+<<<<<<< HEAD
         // Get canvas context
         const context = canvasElement.getContext('2d');
         
@@ -66,6 +78,30 @@ export async function captureFrame() {
         const base64Data = base64Image.split(',')[1];
         
         console.log('✅ Frame captured');
+=======
+        if (!stream || !stream.active) {
+            console.error('❌ Camera stream not active');
+            return null;
+        }
+        
+        // Get canvas context
+        const context = canvasElement.getContext('2d');
+        
+        // Set canvas dimensions to match video
+        canvasElement.width = videoElement.videoWidth || 1280;
+        canvasElement.height = videoElement.videoHeight || 720;
+        
+        // Draw video frame to canvas
+        context.drawImage(videoElement, 0, 0);
+        
+        // Convert to base64 (JPEG for smaller size)
+        const base64Image = canvasElement.toDataURL('image/jpeg', 0.8);
+        
+        // Return image data (remove data:image/jpeg;base64, prefix)
+        const base64Data = base64Image.split(',')[1];
+        
+        console.log('✅ Frame captured, size:', Math.round(base64Data.length / 1024), 'KB');
+>>>>>>> origin/feature/voice-pipeline
         return base64Data;
         
     } catch (error) {
