@@ -6,6 +6,7 @@ Automatically detects and processes menu or cash images
 import sys
 import os
 import base64
+from datetime import datetime
 from openai import OpenAI
 from menu_reader import MenuReader
 from cash_detector import CashDetector
@@ -69,6 +70,39 @@ Just one word: MENU or CASH"""
         return "menu"
 
 
+def save_to_file(content, image_path, output_type):
+    """
+    Save the analysis result to a text file
+    
+    Args:
+        content (str): The text content to save
+        image_path (str): Original image path
+        output_type (str): Type of output ('menu' or 'cash')
+    
+    Returns:
+        str: Path to the saved file
+    """
+    # Create output directory if it doesn't exist
+    output_dir = "output"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    # Find next available number
+    counter = 1
+    while True:
+        output_filename = f"output{counter}.txt"
+        output_path = os.path.join(output_dir, output_filename)
+        if not os.path.exists(output_path):
+            break
+        counter += 1
+    
+    # Write content to file
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    
+    return output_path
+
+
 def main():
     """Main application function"""
     
@@ -77,8 +111,15 @@ def main():
         if len(sys.argv) > 1:
             image_path = sys.argv[1]
         else:
-            print("Please provide the path to your image:")
+            print("Please provide the path to your image (relative to repo):")
             image_path = input("Image path: ").strip()
+        
+        # Get the directory where the script is located (repo root)
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # If path is not absolute, make it relative to script directory
+        if not os.path.isabs(image_path):
+            image_path = os.path.join(script_dir, image_path)
         
         # Check if file exists
         if not os.path.exists(image_path):
@@ -87,18 +128,29 @@ def main():
         # Detect what's in the image
         image_type = detect_image_type(image_path)
         
-        # Route to appropriate handler
+        # Route to appropriate handler and get result
         if image_type == "cash":
             # Handle cash detection
             detector = CashDetector(api_key=API_KEY)
             cash_data = detector.detect_cash(image_path)
-            print(detector.format_cash_text(cash_data))
+            result_text = detector.format_cash_text(cash_data)
+            output_type = "cash"
             
         else:
             # Handle menu reading
             reader = MenuReader(api_key=API_KEY)
             menu_data = reader.read_menu(image_path)
-            print(reader.format_menu_text(menu_data))
+            result_text = reader.format_menu_text(menu_data)
+            output_type = "menu"
+        
+        # Save result to file
+        output_path = save_to_file(result_text, image_path, output_type)
+        
+        # Print success message
+        print(f"✅ Analysis complete!")
+        print(f"📄 Output saved to: {output_path}")
+        print(f"\n--- Content Preview ---")
+        print(result_text[:200] + "..." if len(result_text) > 200 else result_text)
         
     except FileNotFoundError as e:
         print(f"\n❌ Error: {e}")
