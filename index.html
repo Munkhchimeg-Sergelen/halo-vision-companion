@@ -7,41 +7,46 @@
     <link rel="stylesheet" href="/styles/main.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🌟 Halo</h1>
-            <p>Your Vision Companion</p>
-        </header>
-
-        <main>
-            <div class="controls">
-                <!-- TODO: Add hold-to-speak button -->
-                <button id="voiceBtn" 
-                        class="btn-primary"
-                        aria-label="Hold to speak to Halo. Long press to ask questions about your surroundings.">
-                    🎤 Hold to Speak
-                </button>
-
-                <!-- TODO: Add capture image button -->
-                <button id="captureBtn" 
-                        class="btn-secondary"
-                        aria-label="Capture scene. Tap to take a photo and hear description of your surroundings.">
-                    📷 Capture Scene
-                </button>
+    <div class="app-container">
+        <!-- Top Half: Conversation Button -->
+        <button id="conversationBtn" 
+                class="half-button conversation-btn"
+                aria-label="Conversation with Halo. Click to start or stop conversation. Speak naturally and Halo will respond."
+                role="button"
+                aria-pressed="false">
+            <div class="button-content">
+                <span class="icon" aria-hidden="true">💬</span>
+                <span class="label">Start Conversation</span>
+                <span class="status-indicator" id="conversationStatus">Click to begin</span>
             </div>
+        </button>
 
-            <div class="status">
-                <p id="statusText">Ready</p>
+        <!-- Bottom Half: Camera Button -->
+        <button id="cameraBtn" 
+                class="half-button camera-btn"
+                aria-label="Capture scene. Click to take a photo and hear what Halo sees. Works during conversation."
+                role="button">
+            <div class="button-content">
+                <span class="icon" aria-hidden="true">📷</span>
+                <span class="label">Capture Scene</span>
+                <span class="status-indicator" id="cameraStatus">Take a photo</span>
             </div>
+        </button>
 
-            <div class="transcript">
-                <h3>Conversation</h3>
-                <div id="transcriptLog"></div>
+        <!-- Status overlay for feedback -->
+        <div id="statusOverlay" class="status-overlay" role="status" aria-live="polite">
+            <p id="statusText">Ready</p>
+        </div>
+
+        <!-- Camera preview overlay -->
+        <div id="cameraPreview" class="camera-preview">
+            <video id="camera" autoplay playsinline></video>
+            <div class="camera-overlay">
+                <div class="camera-frame"></div>
             </div>
-        </main>
+        </div>
 
-        <!-- Hidden camera element -->
-        <video id="camera" style="display:none;" autoplay></video>
+        <!-- Hidden canvas for capture -->
         <canvas id="canvas" style="display:none;"></canvas>
     </div>
 

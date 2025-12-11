@@ -4,12 +4,23 @@
 import { startRecording, stopRecording } from '../voice/mic.js';
 import { transcribeAudio } from '../voice/stt.js';
 import { speak } from '../voice/tts.js';
-import { captureFrame } from '../vision/camera.js';
+import { captureFrame, ensureCameraPlaying } from '../vision/camera.js';
 import { analyzeScene } from '../vision/vision_agent.js';
 import { orchestrate } from '../agent/orchestrator.js';
 
-// Store last vision data for context
+// Application state
+let isConversationActive = false;
+let isProcessing = false;
+let isCameraActive = false;
 let lastVisionData = null;
+let conversationBtn = null;
+let cameraBtn = null;
+let conversationStatus = null;
+let cameraStatus = null;
+let statusOverlay = null;
+let statusText = null;
+let cameraPreview = null;
+let appContainer = null;
 
 /**
  * Initialize UI controls
@@ -17,74 +28,224 @@ let lastVisionData = null;
 export function initializeUI() {
     console.log('🎨 Initializing UI...');
     
-    // TODO: Get button references
-    // TODO: Set up event listeners
-    // TODO: Initialize status display
+    // Get button references
+    conversationBtn = document.getElementById('conversationBtn');
+    cameraBtn = document.getElementById('cameraBtn');
+    conversationStatus = document.getElementById('conversationStatus');
+    cameraStatus = document.getElementById('cameraStatus');
+    statusOverlay = document.getElementById('statusOverlay');
+    statusText = document.getElementById('statusText');
+    cameraPreview = document.getElementById('cameraPreview');
+    appContainer = document.querySelector('.app-container');
     
-    setupVoiceButton();
-    setupCaptureButton();
+    // Set up event listeners
+    setupConversationButton();
+    setupCameraButton();
     
     console.log('✅ UI initialized');
 }
 
 /**
- * Set up voice button (hold to speak)
+ * Set up conversation button (click to toggle)
  */
-function setupVoiceButton() {
-    const voiceBtn = document.getElementById('voiceBtn');
-    
-    if (!voiceBtn) {
-        console.error('❌ Voice button not found');
+function setupConversationButton() {
+    if (!conversationBtn) {
+        console.error('❌ Conversation button not found');
         return;
     }
     
-    // TODO: Add mousedown event - start recording
-    // voiceBtn.addEventListener('mousedown', async () => {
-    //     updateStatus('🎤 Listening...');
-    //     voiceBtn.style.background = '#ff4444';
-    //     await startRecording();
-    // });
+    conversationBtn.addEventListener('click', async () => {
+        if (isProcessing) {
+            console.log('⏳ Already processing, please wait...');
+            return;
+        }
+        
+        if (!isConversationActive) {
+            // Start conversation
+            await startConversation();
+        } else {
+            // Stop conversation
+            await stopConversation();
+        }
+    });
     
-    // TODO: Add mouseup event - stop recording and process
-    // voiceBtn.addEventListener('mouseup', async () => {
-    //     updateStatus('⏳ Processing...');
-    //     voiceBtn.style.background = '#667eea';
-    //     
-    //     const audioBlob = await stopRecording();
-    //     await handleVoiceInteraction(audioBlob);
-    // });
-    
-    // TODO: Add touch events for mobile
-    // voiceBtn.addEventListener('touchstart', async (e) => {
-    //     e.preventDefault();
-    //     // Same as mousedown
-    // });
-    
-    // voiceBtn.addEventListener('touchend', async (e) => {
-    //     e.preventDefault();
-    //     // Same as mouseup
-    // });
-    
-    console.log('✅ Voice button configured');
+    console.log('✅ Conversation button configured');
 }
 
 /**
- * Set up capture button
+ * Set up camera button
  */
-function setupCaptureButton() {
-    const captureBtn = document.getElementById('captureBtn');
-    
-    if (!captureBtn) {
-        console.error('❌ Capture button not found');
+function setupCameraButton() {
+    if (!cameraBtn) {
+        console.error('❌ Camera button not found');
         return;
     }
     
-    // TODO: Add click event - capture and analyze
-    // captureBtn.addEventListener('click', async () => {
-    //     await handleSceneCapture();
-    // });
+    cameraBtn.addEventListener('click', async () => {
+        if (!isCameraActive) {
+            // First click: Show camera preview
+            await showCameraPreview();
+        } else {
+            // Second click: Capture and analyze
+            await handleSceneCapture();
+        }
+    });
     
-    console.log('✅ Capture button configured');
+    console.log('✅ Camera button configured');
+}
+
+/**
+ * Show camera preview
+ */
+async function showCameraPreview() {
+    try {
+        console.log('🎥 showCameraPreview called');
+        updateStatus('📷 Opening camera...');
+        
+        // Ensure camera is playing
+        console.log('🎥 Ensuring camera is playing...');
+        const cameraReady = await ensureCameraPlaying();
+        console.log('🎥 Camera ready:', cameraReady);
+        
+        if (!cameraReady) {
+            showError('Camera not available. Please check permissions.');
+            return;
+        }
+        
+        isCameraActive = true;
+        
+        // Show preview
+        console.log('🎥 Showing preview elements...');
+        console.log('🎥 cameraPreview element:', cameraPreview);
+        console.log('🎥 appContainer element:', appContainer);
+        
+        if (cameraPreview) {
+            cameraPreview.classList.add('active');
+            console.log('🎥 Added active class to preview');
+            
+            // Make sure video element is visible
+            const videoElement = document.getElementById('camera');
+            if (videoElement) {
+                videoElement.style.display = 'block';
+                videoElement.style.width = '100%';
+                videoElement.style.height = '100%';
+                videoElement.style.objectFit = 'cover';
+                console.log('🎥 Video element styled and visible');
+                console.log('🎥 Video dimensions:', videoElement.videoWidth, 'x', videoElement.videoHeight);
+            }
+        }
+        if (appContainer) {
+            appContainer.classList.add('camera-active');
+            console.log('🎥 Added camera-active class to container');
+        }
+        
+        // Update button
+        updateCameraStatus('Click to capture');
+        const labelElement = cameraBtn.querySelector('.label');
+        if (labelElement) labelElement.textContent = 'Capture Photo';
+        
+        updateStatus('📷 Camera ready - Click to capture');
+        console.log('🎥 Camera preview should now be visible');
+        
+    } catch (error) {
+        console.error('❌ Failed to show camera:', error);
+        showError('Failed to open camera');
+        isCameraActive = false;
+    }
+}
+
+/**
+ * Hide camera preview
+ */
+function hideCameraPreview() {
+    isCameraActive = false;
+    
+    if (cameraPreview) {
+        cameraPreview.classList.remove('active');
+    }
+    if (appContainer) {
+        appContainer.classList.remove('camera-active');
+    }
+    
+    // Reset button
+    updateCameraStatus('Take a photo');
+    const labelElement = cameraBtn.querySelector('.label');
+    if (labelElement) labelElement.textContent = 'Capture Scene';
+}
+
+/**
+ * Start conversation mode
+ */
+async function startConversation() {
+    try {
+        isConversationActive = true;
+        isProcessing = true;
+        
+        // Update UI
+        conversationBtn.classList.add('active');
+        conversationBtn.setAttribute('aria-pressed', 'true');
+        updateButtonLabel(conversationBtn, 'Listening...', 'Speak now');
+        updateStatus('🎤 Listening...');
+        
+        // Start recording
+        await startRecording();
+        
+        isProcessing = false;
+        
+        // Auto-stop after 10 seconds (safety)
+        setTimeout(() => {
+            if (isConversationActive) {
+                stopConversation();
+            }
+        }, 10000);
+        
+    } catch (error) {
+        console.error('❌ Failed to start conversation:', error);
+        showError('Failed to start conversation. Please try again.');
+        isConversationActive = false;
+        isProcessing = false;
+        conversationBtn.classList.remove('active');
+        updateButtonLabel(conversationBtn, 'Start Conversation', 'Click to begin');
+    }
+}
+
+/**
+ * Stop conversation and process
+ */
+async function stopConversation() {
+    try {
+        isProcessing = true;
+        
+        // Update UI
+        conversationBtn.classList.remove('active');
+        conversationBtn.setAttribute('aria-pressed', 'false');
+        updateButtonLabel(conversationBtn, 'Processing...', 'Please wait');
+        updateStatus('⏳ Processing...');
+        
+        // Stop recording and get audio
+        const audioBlob = await stopRecording();
+        
+        if (audioBlob && audioBlob.size > 0) {
+            // Process the audio
+            await handleVoiceInteraction(audioBlob);
+        } else {
+            console.warn('⚠️ No audio recorded');
+            updateStatus('⚠️ No audio detected');
+        }
+        
+        isConversationActive = false;
+        isProcessing = false;
+        
+        // Reset button
+        updateButtonLabel(conversationBtn, 'Start Conversation', 'Click to begin');
+        
+    } catch (error) {
+        console.error('❌ Failed to stop conversation:', error);
+        showError('Failed to process audio. Please try again.');
+        isConversationActive = false;
+        isProcessing = false;
+        updateButtonLabel(conversationBtn, 'Start Conversation', 'Click to begin');
+    }
 }
 
 /**
@@ -93,30 +254,35 @@ function setupCaptureButton() {
  */
 async function handleVoiceInteraction(audioBlob) {
     try {
-        // TODO: Show "processing" status
         updateStatus('🎯 Understanding...');
         
-        // TODO: Transcribe audio
-        // const transcript = await transcribeAudio(audioBlob);
+        // Transcribe audio
+        const transcript = await transcribeAudio(audioBlob);
+        console.log('📝 Transcript:', transcript);
         
-        // TODO: Add to transcript log
-        // addToTranscript('user', transcript);
+        if (!transcript || transcript.trim() === '') {
+            updateStatus('⚠️ No speech detected');
+            return;
+        }
         
-        // TODO: Get current vision data if available
-        // const visionContext = lastVisionData;
+        // Get current vision data if available
+        const visionContext = lastVisionData;
         
-        // TODO: Send to orchestrator
+        // Send to orchestrator
         updateStatus('🧠 Thinking...');
-        // const response = await orchestrate(transcript, visionContext);
+        const response = await orchestrate(transcript, visionContext);
+        console.log('💭 Response:', response);
         
-        // TODO: Add response to transcript
-        // addToTranscript('agent', response);
+        if (!response || response.trim() === '') {
+            updateStatus('⚠️ No response generated');
+            return;
+        }
         
-        // TODO: Speak response
+        // Speak response
         updateStatus('🗣️ Speaking...');
-        // await speak(response);
+        await speak(response);
         
-        updateStatus('✅ Ready');
+        updateStatus('✅ Ready - Click to speak again');
         
     } catch (error) {
         console.error('❌ Voice interaction failed:', error);
@@ -130,31 +296,49 @@ async function handleVoiceInteraction(audioBlob) {
  */
 async function handleSceneCapture() {
     try {
-        // TODO: Show "capturing" status
+        // Visual feedback
+        cameraBtn.classList.add('capturing');
+        updateCameraStatus('Capturing...');
         updateStatus('📸 Capturing scene...');
         
-        // TODO: Capture frame
-        // const base64Image = await captureFrame();
+        // Capture frame
+        const base64Image = await captureFrame();
         
-        // TODO: Analyze with vision API
+        // Hide camera preview after capture
+        hideCameraPreview();
+        
+        if (!base64Image) {
+            updateStatus('⚠️ Failed to capture image');
+            cameraBtn.classList.remove('capturing');
+            return;
+        }
+        
+        // Analyze with vision API
         updateStatus('🔍 Analyzing...');
-        // const visionData = await analyzeScene(base64Image);
+        updateCameraStatus('Analyzing...');
+        const visionData = await analyzeScene(base64Image);
         
-        // TODO: Store vision data for context
-        // lastVisionData = visionData;
+        // Store vision data for context
+        lastVisionData = visionData;
         
-        // TODO: Optionally speak description
-        // if (visionData && visionData.scene_description) {
-        //     addToTranscript('agent', `Scene captured: ${visionData.scene_description}`);
-        //     await speak(visionData.scene_description);
-        // }
+        // Remove capturing animation
+        setTimeout(() => cameraBtn.classList.remove('capturing'), 300);
         
-        updateStatus('✅ Scene captured - Ready');
+        // Speak description
+        if (visionData && visionData.scene_description) {
+            updateStatus('🗣️ Describing scene...');
+            await speak(visionData.scene_description);
+            updateStatus('✅ Scene captured - Click camera to capture again');
+        } else {
+            updateStatus('⚠️ No scene description available');
+        }
         
     } catch (error) {
         console.error('❌ Scene capture failed:', error);
         showError('Failed to capture scene. Please try again.');
         updateStatus('❌ Error - Ready');
+        cameraBtn.classList.remove('capturing');
+        hideCameraPreview();
     }
 }
 
@@ -163,48 +347,44 @@ async function handleSceneCapture() {
  * @param {string} message - Status message to display
  */
 export function updateStatus(message) {
-    const statusText = document.getElementById('statusText');
     if (statusText) {
         statusText.textContent = message;
         console.log('📊 Status:', message);
+        
+        // Show overlay briefly
+        if (statusOverlay) {
+            statusOverlay.classList.add('visible');
+            setTimeout(() => {
+                statusOverlay.classList.remove('visible');
+            }, 2000);
+        }
     }
 }
 
 /**
- * Add message to transcript log
- * @param {string} role - 'user' or 'agent'
- * @param {string} message - Message content
+ * Update button label and status
+ * @param {HTMLElement} button - Button element
+ * @param {string} label - Main label text
+ * @param {string} status - Status indicator text
  */
-export function addToTranscript(role, message) {
-    const log = document.getElementById('transcriptLog');
+function updateButtonLabel(button, label, status) {
+    const labelElement = button.querySelector('.label');
+    const statusElement = button.querySelector('.status-indicator');
     
-    if (!log) {
-        console.error('❌ Transcript log not found');
-        return;
-    }
-    
-    // TODO: Create message element
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `transcript-message ${role}`;
-    
-    // TODO: Add role label
-    const roleLabel = document.createElement('strong');
-    roleLabel.textContent = role === 'user' ? 'You: ' : 'Halo: ';
-    
-    // TODO: Add message text
-    const messageText = document.createTextNode(message);
-    
-    messageDiv.appendChild(roleLabel);
-    messageDiv.appendChild(messageText);
-    
-    // TODO: Append to log
-    log.appendChild(messageDiv);
-    
-    // TODO: Auto-scroll to bottom
-    log.scrollTop = log.scrollHeight;
-    
-    console.log(`💬 ${role}:`, message);
+    if (labelElement) labelElement.textContent = label;
+    if (statusElement) statusElement.textContent = status;
 }
+
+/**
+ * Update camera button status
+ * @param {string} status - Status text
+ */
+function updateCameraStatus(status) {
+    if (cameraStatus) {
+        cameraStatus.textContent = status;
+    }
+}
+
 
 /**
  * Show error message
@@ -213,25 +393,15 @@ export function addToTranscript(role, message) {
 export function showError(error) {
     console.error('Error:', error);
     
-    // TODO: Display user-friendly error
-    const statusText = document.getElementById('statusText');
-    if (statusText) {
+    if (statusText && statusOverlay) {
         statusText.textContent = `❌ ${error}`;
-        statusText.style.color = '#ff4444';
+        statusOverlay.classList.add('visible');
+        statusOverlay.style.background = 'rgba(220, 38, 38, 0.9)';
         
-        // Reset color after 3 seconds
+        // Reset after 3 seconds
         setTimeout(() => {
-            statusText.style.color = '';
+            statusOverlay.classList.remove('visible');
+            statusOverlay.style.background = 'rgba(0, 0, 0, 0.85)';
         }, 3000);
-    }
-}
-
-/**
- * Clear transcript log
- */
-export function clearTranscript() {
-    const log = document.getElementById('transcriptLog');
-    if (log) {
-        log.innerHTML = '';
     }
 }

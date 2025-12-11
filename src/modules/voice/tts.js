@@ -35,31 +35,54 @@ export async function speak(text) {
     console.log('🗣️ Speaking:', text);
     
     try {
-        // TODO: Send text to ElevenLabs TTS API
-        // const response = await fetch(TTS_ENDPOINT, {
-        //     method: 'POST',
-        //     headers: {
-        //         'Accept': 'audio/mpeg',
-        //         'xi-api-key': ELEVENLABS_API_KEY,
-        //         'Content-Type': 'application/json'
-        //     },
-        //     body: JSON.stringify({
-        //         text: text,
-        //         model_id: 'eleven_monolingual_v1',
-        //         voice_settings: {
-        //             stability: 0.5,
-        //             similarity_boost: 0.5
-        //         }
-        //     })
-        // });
+        // MOCK: Use browser's built-in speech synthesis for testing
+        // TODO: Replace with real ElevenLabs TTS API call
         
-        // TODO: Get audio response as array buffer
-        // const audioData = await response.arrayBuffer();
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+            
+            return new Promise((resolve) => {
+                utterance.onend = () => {
+                    console.log('✅ Speech completed (MOCK)');
+                    resolve();
+                };
+                utterance.onerror = () => {
+                    console.log('✅ Speech completed (with error)');
+                    resolve();
+                };
+                window.speechSynthesis.speak(utterance);
+            });
+        } else {
+            // Fallback: just wait
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log('✅ Speech completed (MOCK - no synthesis)');
+        }
         
-        // TODO: Play audio through AudioContext
-        // await playAudio(audioData);
+        /* REAL IMPLEMENTATION (uncomment when API key is ready):
+        const response = await fetch(TTS_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Accept': 'audio/mpeg',
+                'xi-api-key': ELEVENLABS_API_KEY,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                text: text,
+                model_id: 'eleven_monolingual_v1',
+                voice_settings: {
+                    stability: 0.5,
+                    similarity_boost: 0.5
+                }
+            })
+        });
         
+        const audioData = await response.arrayBuffer();
+        await playAudio(audioData);
         console.log('✅ Speech completed');
+        */
         
     } catch (error) {
         console.error('❌ TTS Error:', error);

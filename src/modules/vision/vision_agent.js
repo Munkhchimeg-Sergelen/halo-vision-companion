@@ -29,54 +29,71 @@ export async function analyzeScene(base64Image) {
     console.log('🔍 Analyzing scene...');
     
     try {
-        // TODO: Prepare API request
-        // const response = await fetch(VISION_ENDPOINT, {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //         'Authorization': `Bearer ${OPENAI_API_KEY}`
-        //     },
-        //     body: JSON.stringify({
-        //         model: 'gpt-4-vision-preview',
-        //         messages: [
-        //             {
-        //                 role: 'user',
-        //                 content: [
-        //                     {
-        //                         type: 'text',
-        //                         text: 'Analyze this image for a visually impaired person. Provide: 1) Scene description 2) List of objects and their positions 3) Any text visible 4) Navigation hints. Format as JSON.'
-        //                     },
-        //                     {
-        //                         type: 'image_url',
-        //                         image_url: {
-        //                             url: `data:image/jpeg;base64,${base64Image}`
-        //                         }
-        //                     }
-        //                 ]
-        //             }
-        //         ],
-        //         max_tokens: 500
-        //     })
-        // });
+        // MOCK: Return fake scene analysis for testing
+        // TODO: Replace with real OpenAI Vision API call
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
         
-        // TODO: Parse response
-        // const data = await response.json();
-        // const content = data.choices[0].message.content;
+        const mockScenes = [
+            {
+                scene_description: "You are in an office space with a desk in front of you. There's a laptop on the desk and a window to your right letting in natural light.",
+                objects: ["desk", "laptop", "window", "chair"],
+                text_detected: ["Welcome", "Exit"],
+                navigation_hints: ["Clear path ahead", "Desk is 2 meters in front"]
+            },
+            {
+                scene_description: "You are in a hallway with doors on both sides. The hallway is well-lit and extends straight ahead.",
+                objects: ["doors", "walls", "ceiling lights"],
+                text_detected: ["Room 101", "Emergency Exit"],
+                navigation_hints: ["Straight path ahead", "Door on your left at 3 meters"]
+            },
+            {
+                scene_description: "You are outdoors in a park area. There's a pathway ahead and trees on both sides.",
+                objects: ["pathway", "trees", "bench", "grass"],
+                text_detected: ["Park Rules", "No Littering"],
+                navigation_hints: ["Follow the path ahead", "Bench on your right"]
+            }
+        ];
         
-        // TODO: Parse JSON response
-        // const analysis = JSON.parse(content);
+        const analysis = mockScenes[Math.floor(Math.random() * mockScenes.length)];
+        console.log('✅ Scene analyzed (MOCK):', analysis);
+        return analysis;
         
-        // TODO: Return structured data
-        // console.log('✅ Scene analyzed:', analysis);
-        // return analysis;
+        /* REAL IMPLEMENTATION (uncomment when API key is ready):
+        const response = await fetch(VISION_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${OPENAI_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: 'gpt-4-vision-preview',
+                messages: [
+                    {
+                        role: 'user',
+                        content: [
+                            {
+                                type: 'text',
+                                text: 'Analyze this image for a visually impaired person. Provide: 1) Scene description 2) List of objects and their positions 3) Any text visible 4) Navigation hints. Format as JSON.'
+                            },
+                            {
+                                type: 'image_url',
+                                image_url: {
+                                    url: `data:image/jpeg;base64,${base64Image}`
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens: 500
+            })
+        });
         
-        // Placeholder
-        return {
-            scene_description: '',
-            objects: [],
-            text_detected: [],
-            navigation_hints: []
-        };
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+        const analysis = JSON.parse(content);
+        console.log('✅ Scene analyzed:', analysis);
+        return analysis;
+        */
         
     } catch (error) {
         console.error('❌ Vision analysis failed:', error);

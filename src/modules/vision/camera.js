@@ -15,17 +15,18 @@ export async function initializeCamera() {
         videoElement = document.getElementById('camera');
         canvasElement = document.getElementById('canvas');
         
-        // TODO: Request camera permissions
-        // stream = await navigator.mediaDevices.getUserMedia({ 
-        //     video: { 
-        //         width: { ideal: 1280 },
-        //         height: { ideal: 720 }
-        //     } 
-        // });
+        // Request camera permissions
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: 'environment' // Use back camera on mobile
+            } 
+        });
         
-        // TODO: Attach stream to video element
-        // videoElement.srcObject = stream;
-        // await videoElement.play();
+        // Attach stream to video element
+        videoElement.srcObject = stream;
+        await videoElement.play();
         
         console.log('✅ Camera initialized');
         return true;
@@ -43,25 +44,29 @@ export async function captureFrame() {
     console.log('📸 Capturing frame...');
     
     try {
-        // TODO: Get canvas context
-        // const context = canvasElement.getContext('2d');
+        if (!videoElement || !canvasElement) {
+            console.error('❌ Video or canvas element not found');
+            return null;
+        }
         
-        // TODO: Set canvas dimensions to match video
-        // canvasElement.width = videoElement.videoWidth;
-        // canvasElement.height = videoElement.videoHeight;
+        // Get canvas context
+        const context = canvasElement.getContext('2d');
         
-        // TODO: Draw video frame to canvas
-        // context.drawImage(videoElement, 0, 0);
+        // Set canvas dimensions to match video
+        canvasElement.width = videoElement.videoWidth || 1280;
+        canvasElement.height = videoElement.videoHeight || 720;
         
-        // TODO: Convert to base64
-        // const base64Image = canvasElement.toDataURL('image/jpeg', 0.8);
+        // Draw video frame to canvas
+        context.drawImage(videoElement, 0, 0);
         
-        // TODO: Return image data (remove data:image/jpeg;base64, prefix)
-        // return base64Image.split(',')[1];
+        // Convert to base64
+        const base64Image = canvasElement.toDataURL('image/jpeg', 0.8);
         
-        // Placeholder
+        // Return image data (remove data:image/jpeg;base64, prefix)
+        const base64Data = base64Image.split(',')[1];
+        
         console.log('✅ Frame captured');
-        return '';
+        return base64Data;
         
     } catch (error) {
         console.error('❌ Frame capture failed:', error);
@@ -92,4 +97,33 @@ export function stopCamera() {
  */
 export function isCameraActive() {
     return stream !== null && stream.active;
+}
+
+/**
+ * Ensure camera is playing (for preview)
+ */
+export async function ensureCameraPlaying() {
+    console.log('🎥 ensureCameraPlaying - videoElement:', videoElement);
+    console.log('🎥 ensureCameraPlaying - stream:', stream);
+    console.log('🎥 ensureCameraPlaying - stream active:', stream?.active);
+    
+    if (videoElement && stream) {
+        try {
+            console.log('🎥 Video element paused:', videoElement.paused);
+            console.log('🎥 Video element srcObject:', videoElement.srcObject);
+            console.log('🎥 Video element readyState:', videoElement.readyState);
+            
+            if (videoElement.paused) {
+                console.log('🎥 Attempting to play video...');
+                await videoElement.play();
+                console.log('🎥 Video playing!');
+            }
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to play camera:', error);
+            return false;
+        }
+    }
+    console.error('❌ Video element or stream not available');
+    return false;
 }

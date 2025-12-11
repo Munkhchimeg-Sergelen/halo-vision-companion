@@ -14,13 +14,18 @@ export async function initializeMicrophone() {
     console.log('🎤 Initializing microphone...');
     
     try {
-        // TODO: Request microphone access
-        // stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Request microphone access
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         
-        // TODO: Create MediaRecorder instance
-        // mediaRecorder = new MediaRecorder(stream);
+        // Create MediaRecorder instance
+        mediaRecorder = new MediaRecorder(stream);
         
-        // TODO: Set up event listeners for dataavailable
+        // Set up event listeners for dataavailable
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
+            }
+        };
         
         console.log('✅ Microphone initialized');
         return true;
@@ -38,18 +43,13 @@ export async function initializeMicrophone() {
 export async function startRecording() {
     console.log('🔴 Recording started');
     
-    // TODO: Clear previous audio chunks
+    // Clear previous audio chunks
     audioChunks = [];
     
-    // TODO: Set up data collection
-    // mediaRecorder.ondataavailable = (event) => {
-    //     if (event.data.size > 0) {
-    //         audioChunks.push(event.data);
-    //     }
-    // };
-    
-    // TODO: Start recording
-    // mediaRecorder.start();
+    if (mediaRecorder && mediaRecorder.state === 'inactive') {
+        // Start recording
+        mediaRecorder.start();
+    }
 }
 
 /**
@@ -61,17 +61,19 @@ export async function stopRecording() {
     console.log('⏹️ Recording stopped');
     
     return new Promise((resolve) => {
-        // TODO: Set up onstop handler
-        // mediaRecorder.onstop = () => {
-        //     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        //     resolve(audioBlob);
-        // };
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+            resolve(null);
+            return;
+        }
         
-        // TODO: Stop the recorder
-        // mediaRecorder.stop();
+        // Set up onstop handler
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            resolve(audioBlob);
+        };
         
-        // Placeholder - remove when implemented
-        resolve(null);
+        // Stop the recorder
+        mediaRecorder.stop();
     });
 }
 

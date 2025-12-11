@@ -30,29 +30,39 @@ export async function transcribeAudio(audioBlob) {
     console.log('🎯 Transcribing audio...');
     
     try {
-        // TODO: Prepare form data
-        // const formData = new FormData();
-        // formData.append('audio', audioBlob);
+        // MOCK: Return fake transcript for testing
+        // TODO: Replace with real ElevenLabs API call
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
         
-        // TODO: Send to ElevenLabs STT API
-        // const response = await fetch(STT_ENDPOINT, {
-        //     method: 'POST',
-        //     headers: {
-        //         'xi-api-key': ELEVENLABS_API_KEY
-        //     },
-        //     body: formData
-        // });
+        const mockTranscripts = [
+            "What's around me?",
+            "Can you describe what you see?",
+            "Read the text on this sign",
+            "Where is the door?",
+            "Help me navigate to the exit"
+        ];
         
-        // TODO: Parse response
-        // const data = await response.json();
-        // const transcript = data.text;
+        const transcript = mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
+        console.log('✅ Transcription (MOCK):', transcript);
+        return transcript;
         
-        // TODO: Return transcript
-        // console.log('✅ Transcription:', transcript);
-        // return transcript;
+        /* REAL IMPLEMENTATION (uncomment when API key is ready):
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
         
-        // Placeholder
-        return '';
+        const response = await fetch(STT_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'xi-api-key': ELEVENLABS_API_KEY
+            },
+            body: formData
+        });
+        
+        const data = await response.json();
+        const transcript = data.text;
+        console.log('✅ Transcription:', transcript);
+        return transcript;
+        */
         
     } catch (error) {
         handleSTTError(error);
