@@ -47,9 +47,15 @@ export async function startRecording() {
     
     // Create MediaRecorder if not exists
     if (!mediaRecorder && stream) {
-        mediaRecorder = new MediaRecorder(stream, {
-            mimeType: 'audio/webm'
-        });
+        // Try different mime types in order of preference
+        let mimeType = 'audio/webm';
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            mimeType = 'audio/mp4';
+        } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            mimeType = 'audio/webm;codecs=opus';
+        }
+        
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
         
         // Set up data collection
         mediaRecorder.ondataavailable = (event) => {

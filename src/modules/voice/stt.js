@@ -35,9 +35,16 @@ export async function transcribeAudio(audioBlob) {
     }
     
     try {
+        console.log('📦 Audio blob type:', audioBlob.type, 'size:', audioBlob.size);
+        
         // Prepare form data
         const formData = new FormData();
-        formData.append('audio', audioBlob, 'recording.webm');
+        // Determine file extension based on blob type
+        const fileExt = audioBlob.type.includes('mp4') ? 'mp4' : 
+                       audioBlob.type.includes('mpeg') ? 'mp3' : 'webm';
+        formData.append('audio', audioBlob, `recording.${fileExt}`);
+        
+        console.log('📤 Sending to ElevenLabs STT as:', fileExt);
         
         // Send to ElevenLabs STT API
         const response = await fetch(STT_ENDPOINT, {
