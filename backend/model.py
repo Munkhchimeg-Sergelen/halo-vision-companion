@@ -8,7 +8,8 @@ from pathlib import Path
 
 
 # ---------------- PATHS ----------------
-BASE_DIR = Path("/Users/kevin/Desktop/hackathon/halo-vision-companion")
+# Resolve project root as the parent of the backend directory
+BASE_DIR = Path(__file__).resolve().parent.parent
 INPUT_DIR = BASE_DIR / "frames" / "png_default"
 BBOX_DIR = BASE_DIR / "frames" / "png_boundingbox"
 DEPTH_DIR = BASE_DIR / "frames" / "png_depth"

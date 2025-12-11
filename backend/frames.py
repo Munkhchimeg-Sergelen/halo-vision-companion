@@ -3,11 +3,14 @@ import os
 from pathlib import Path
 
 
+# Resolve project root as the parent of the backend directory
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 # Folder with PNG frames
-FRAMES_DIR = Path("/Users/kevin/Desktop/hackathon/halo-vision-companion/frames/png_depth")
+FRAMES_DIR = BASE_DIR / "frames" / "png_depth"
 
 # Output video path
-OUTPUT_VIDEO = Path("/Users/kevin/Desktop/hackathon/halo-vision-companion/frames/output_video_depth.mp4")
+OUTPUT_VIDEO = BASE_DIR / "frames" / "output_video_depth.mp4"
 
 # Frames per second
 FPS = 24  # ajusta a lo que quieras

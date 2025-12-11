@@ -8,8 +8,11 @@ import pillow_heif
 # Register HEIF/HEIC support in Pillow
 pillow_heif.register_heif_opener()
 
+# Resolve project root as the parent of the backend directory
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 # Folder with HEIC frames
-FRAMES_DIR = Path("/Users/kevin/Desktop/hackathon/halo-vision-companion/frames")
+FRAMES_DIR = BASE_DIR / "frames"
 
 # Output folder (can be the same or a subfolder)
 OUTPUT_DIR = FRAMES_DIR / "png"

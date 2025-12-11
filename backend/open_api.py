@@ -6,8 +6,8 @@ from openai import OpenAI
 # Create OpenAI client (API key is read from the OPENAI_API_KEY env var)
 client = OpenAI()
 
-# Paths
-BASE_DIR = Path("/Users/kevin/Desktop/hackathon/halo-vision-companion")
+# Paths (project root is parent of backend directory)
+BASE_DIR = Path(__file__).resolve().parent.parent
 JSON_INPUT_DIR = BASE_DIR / "frames" / "json_input"
 JSON_OUTPUT_DIR = BASE_DIR / "frames" / "json_output_openai"
 
