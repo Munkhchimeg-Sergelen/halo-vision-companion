@@ -2,7 +2,7 @@
 // ROLE 1: Voice Pipeline Engineer
 
 const ELEVENLABS_API_KEY = import.meta.env.VITE_ELEVENLABS_API_KEY;
-const VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL'; // Default: Sarah voice
+const VOICE_ID = import.meta.env.VITE_ELEVENLABS_VOICE_ID || 'pNInz6obpgDQGcFmaJgB'; // Default: Adam voice
 const TTS_ENDPOINT = `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`;
 
 let currentAudio = null;
